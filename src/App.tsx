@@ -1,332 +1,571 @@
-import React, { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Project,
+  Routine,
+  Task,
+  Workspace,
+  WorkspaceFilter,
+} from "./types";
+import { defaultProjects } from "./data/defaultProjects";
+import { formatDate, getMonthGrid, nextMonth, prevMonth } from "./lib/calendar";
+import {
+  loadProjects,
+  loadRoutines,
+  loadTasks,
+  saveProjects,
+  saveRoutines,
+  saveTasks,
+} from "./lib/storage";
 
-type Priority = "low" | "medium" | "high";
-type Workspace = "clinic" | "family" | "study";
-type Project = {
-  id: string;
-  name: string;
-  workspace: Workspace;
-  color: string;
-};
-
-type RepeatRule = "none" | "daily" | "weekly" | "monthly";
-
-type Task = {
-  id: string;
-  title: string;
-  date: string; // YYYY-MM-DD
-  projectId: string;
-  workspace: Workspace;
-  done: boolean;
-  priority: Priority;
-  repeat: RepeatRule;
-};
-
-const projects: Project[] = [
-  { id: "nesuda", name: "Nesuda", workspace: "clinic", color: "bg-emerald-100 border-emerald-300" },
-  { id: "amani", name: "Amani", workspace: "clinic", color: "bg-sky-100 border-sky-300" },
-  { id: "kids", name: "Children", workspace: "family", color: "bg-rose-100 border-rose-300" },
-  { id: "ielts", name: "IELTS", workspace: "study", color: "bg-amber-100 border-amber-300" },
-];
-
-const seedTasks: Task[] = [
-  {
-    id: "1",
-    title: "Check NSSF",
-    date: todayISO(),
-    projectId: "nesuda",
-    workspace: "clinic",
-    done: false,
-    priority: "high",
-    repeat: "none",
-  },
-  {
-    id: "2",
-    title: "NICU round",
-    date: todayISO(),
-    projectId: "amani",
-    workspace: "clinic",
-    done: true,
-    priority: "medium",
-    repeat: "weekly",
-  },
-  {
-    id: "3",
-    title: "Spanish 10 min",
-    date: todayISO(),
-    projectId: "ielts",
-    workspace: "study",
-    done: false,
-    priority: "low",
-    repeat: "daily",
-  },
-];
-
-function todayISO() {
-  const d = new Date();
-  const offset = d.getTimezoneOffset();
-  const local = new Date(d.getTime() - offset * 60000);
-  return local.toISOString().slice(0, 10);
+function getTodayString() {
+  return formatDate(new Date());
 }
 
-function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
+function getMonthTitle(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 }
 
-function endOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+function getProjectById(projects: Project[], projectId: string) {
+  return projects.find((project) => project.id === projectId);
 }
 
-function padMonthGrid(date: Date) {
-  const start = startOfMonth(date);
-  const end = endOfMonth(date);
-  const firstDay = (start.getDay() + 6) % 7; // Monday first
-  const totalDays = end.getDate();
-  const cells: (Date | null)[] = [];
-
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= totalDays; d++) cells.push(new Date(date.getFullYear(), date.getMonth(), d));
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
+function getProjectsForWorkspace(
+  projects: Project[],
+  workspace: WorkspaceFilter
+) {
+  if (workspace === "all") return projects;
+  return projects.filter((project) => project.workspace === workspace);
 }
 
-function formatISO(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+export default function App() {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [workspaceFilter, setWorkspaceFilter] =
+    useState<WorkspaceFilter>("all");
 
-function projectById(id: string) {
-  return projects.find((p) => p.id === id)!;
-}
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [routines, setRoutines] = useState<Routine[]>([]);
 
-export default function PlannerMVP() {
-  const [month, setMonth] = useState(new Date());
-  const [tasks, setTasks] = useState<Task[]>(seedTasks);
-  const [workspaceFilter, setWorkspaceFilter] = useState<Workspace | "all">("all");
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState(todayISO());
-  const [projectId, setProjectId] = useState(projects[0].id);
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [repeat, setRepeat] = useState<RepeatRule>("none");
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
-  const cells = useMemo(() => padMonthGrid(month), [month]);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDate, setNewTaskDate] = useState(getTodayString());
+  const [newTaskWorkspace, setNewTaskWorkspace] = useState<Workspace>("work");
+  const [newTaskProjectId, setNewTaskProjectId] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<
+    "low" | "medium" | "high"
+  >("medium");
 
-  const filteredTasks = useMemo(() => {
-    return workspaceFilter === "all"
-      ? tasks
-      : tasks.filter((t) => t.workspace === workspaceFilter);
+  useEffect(() => {
+    const storedTasks = loadTasks();
+    const storedProjects = loadProjects();
+    const storedRoutines = loadRoutines();
+
+    setTasks(storedTasks);
+
+    if (storedProjects.length > 0) {
+      setProjects(storedProjects);
+    } else {
+      setProjects(defaultProjects);
+    }
+
+    if (storedRoutines.length > 0) {
+      setRoutines(storedRoutines);
+    } else {
+      setRoutines([
+        {
+          id: "routine-glutes",
+          title: "Fitness: glutes",
+          workspace: "home",
+          targetPerWeek: 3,
+          completedThisWeek: 0,
+        },
+        {
+          id: "routine-arms",
+          title: "Fitness: arms",
+          workspace: "home",
+          targetPerWeek: 2,
+          completedThisWeek: 0,
+        },
+        {
+          id: "routine-abs",
+          title: "Fitness: abs",
+          workspace: "home",
+          targetPerWeek: 2,
+          completedThisWeek: 0,
+        },
+        {
+          id: "routine-spanish-read",
+          title: "Spanish reading",
+          workspace: "study",
+          targetPerWeek: 1,
+          completedThisWeek: 0,
+        },
+        {
+          id: "routine-spanish-listen",
+          title: "Spanish listening",
+          workspace: "study",
+          targetPerWeek: 1,
+          completedThisWeek: 0,
+        },
+        {
+          id: "routine-spanish-video",
+          title: "Spanish video",
+          workspace: "study",
+          targetPerWeek: 1,
+          completedThisWeek: 0,
+        },
+      ]);
+    }
+  }, []);
+
+  useEffect(() => {
+    saveTasks(tasks);
+  }, [tasks]);
+
+  useEffect(() => {
+    if (projects.length > 0) {
+      saveProjects(projects);
+    }
+  }, [projects]);
+
+  useEffect(() => {
+    if (routines.length > 0) {
+      saveRoutines(routines);
+    }
+  }, [routines]);
+
+  useEffect(() => {
+    const filteredProjects = projects.filter(
+      (project) => project.workspace === newTaskWorkspace
+    );
+
+    if (filteredProjects.length > 0) {
+      setNewTaskProjectId(filteredProjects[0].id);
+    } else {
+      setNewTaskProjectId("");
+    }
+  }, [newTaskWorkspace, projects]);
+
+  const monthCells = useMemo(() => {
+    return getMonthGrid(currentMonth);
+  }, [currentMonth]);
+
+  const visibleTasks = useMemo(() => {
+    if (workspaceFilter === "all") return tasks;
+    return tasks.filter((task) => task.workspace === workspaceFilter);
   }, [tasks, workspaceFilter]);
 
-  const tasksByDate = useMemo(() => {
-    const map = new Map<string, Task[]>();
-    for (const task of filteredTasks) {
-      const arr = map.get(task.date) ?? [];
-      arr.push(task);
-      map.set(task.date, arr);
-    }
-    return map;
-  }, [filteredTasks]);
+  const visibleProjects = useMemo(() => {
+    return getProjectsForWorkspace(projects, workspaceFilter);
+  }, [projects, workspaceFilter]);
 
-  function addTask() {
-    if (!title.trim()) return;
-    const project = projectById(projectId);
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      title: title.trim(),
-      date,
-      projectId,
-      workspace: project.workspace,
-      done: false,
-      priority,
-      repeat,
-    };
-    setTasks((prev) => [newTask, ...prev]);
-    setTitle("");
+  const visibleRoutines = useMemo(() => {
+    if (workspaceFilter === "all") return routines;
+    return routines.filter((routine) => routine.workspace === workspaceFilter);
+  }, [routines, workspaceFilter]);
+
+  function openTaskModal() {
+    setNewTaskTitle("");
+    setNewTaskDate(getTodayString());
+    setNewTaskWorkspace("work");
+
+    const firstWorkProject = projects.find((project) => project.workspace === "work");
+    setNewTaskProjectId(firstWorkProject ? firstWorkProject.id : "");
+    setNewTaskPriority("medium");
+    setIsTaskModalOpen(true);
   }
 
-  function toggleDone(taskId: string) {
+  function closeTaskModal() {
+    setIsTaskModalOpen(false);
+  }
+
+  function handleCreateTask() {
+    if (!newTaskTitle.trim()) return;
+    if (!newTaskDate) return;
+    if (!newTaskProjectId) return;
+
+    const newTask: Task = {
+      id: crypto.randomUUID(),
+      title: newTaskTitle.trim(),
+      date: newTaskDate,
+      workspace: newTaskWorkspace,
+      projectId: newTaskProjectId,
+      done: false,
+      priority: newTaskPriority,
+      repeat: "none",
+    };
+
+    setTasks((prev) => [...prev, newTask]);
+    setIsTaskModalOpen(false);
+  }
+
+  function toggleTaskDone(taskId: string) {
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t))
+      prev.map((task) =>
+        task.id === taskId ? { ...task, done: !task.done } : task
+      )
     );
   }
 
-  function moveTask(taskId: string, direction: -1 | 1) {
+  function moveTaskByDays(taskId: string, days: number) {
     setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
-        const base = new Date(`${t.date}T00:00:00`);
-        base.setDate(base.getDate() + direction);
-        return { ...t, date: formatISO(base) };
+      prev.map((task) => {
+        if (task.id !== taskId) return task;
+
+        const current = new Date(task.date + "T00:00:00");
+        current.setDate(current.getDate() + days);
+
+        return {
+          ...task,
+          date: formatDate(current),
+        };
       })
     );
   }
 
-  function nextMonth(delta: number) {
-    setMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  function incrementRoutine(routineId: string) {
+    setRoutines((prev) =>
+      prev.map((routine) => {
+        if (routine.id !== routineId) return routine;
+
+        const nextValue =
+          routine.completedThisWeek < routine.targetPerWeek
+            ? routine.completedThisWeek + 1
+            : routine.completedThisWeek;
+
+        return {
+          ...routine,
+          completedThisWeek: nextValue,
+        };
+      })
+    );
   }
 
+  function decrementRoutine(routineId: string) {
+    setRoutines((prev) =>
+      prev.map((routine) => {
+        if (routine.id !== routineId) return routine;
+
+        const nextValue =
+          routine.completedThisWeek > 0
+            ? routine.completedThisWeek - 1
+            : 0;
+
+        return {
+          ...routine,
+          completedThisWeek: nextValue,
+        };
+      })
+    );
+  }
+
+  function getTasksForDay(date: Date) {
+    const dateString = formatDate(date);
+    return visibleTasks.filter((task) => task.date === dateString);
+  }
+
+  function renderPriority(task: Task) {
+    if (task.priority === "high") return " !";
+    if (task.priority === "medium") return " •";
+    return "";
+  }
+
+  const workspaceProjectsForModal = projects.filter(
+    (project) => project.workspace === newTaskWorkspace
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Planner MVP</h1>
-            <p className="text-sm text-slate-600">
-              Calendar by day, project colors, recurring flag, done state, moving tasks, and priority mark.
-            </p>
+    <div className="app">
+      <div className="topbar">
+        <div className="workspace-buttons">
+          <button
+            className={workspaceFilter === "all" ? "active" : ""}
+            onClick={() => setWorkspaceFilter("all")}
+          >
+            All
+          </button>
+          <button
+            className={workspaceFilter === "work" ? "active" : ""}
+            onClick={() => setWorkspaceFilter("work")}
+          >
+            Nesuda
+          </button>
+          <button
+            className={workspaceFilter === "home" ? "active" : ""}
+            onClick={() => setWorkspaceFilter("home")}
+          >
+            Home
+          </button>
+          <button
+            className={workspaceFilter === "study" ? "active" : ""}
+            onClick={() => setWorkspaceFilter("study")}
+          >
+            Study
+          </button>
+          <button
+            className={workspaceFilter === "promotion" ? "active" : ""}
+            onClick={() => setWorkspaceFilter("promotion")}
+          >
+            Promotion
+          </button>
+        </div>
+
+        <button onClick={openTaskModal}>Create task</button>
+      </div>
+
+      <div className="main">
+        <div className="sidebar">
+          <div className="routines">
+            <h3>Weekly routines</h3>
+
+            {visibleRoutines.length === 0 ? (
+              <p>No routines</p>
+            ) : (
+              visibleRoutines.map((routine) => (
+                <div
+                  key={routine.id}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    padding: "8px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <div style={{ marginBottom: "6px", fontWeight: 600 }}>
+                    {routine.title}
+                  </div>
+
+                  <div className="routine">
+                    <span>
+                      {routine.completedThisWeek} / {routine.targetPerWeek}
+                    </span>
+
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button onClick={() => decrementRoutine(routine.id)}>
+                        -
+                      </button>
+                      <button onClick={() => incrementRoutine(routine.id)}>
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => nextMonth(-1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="min-w-40 text-center text-sm font-medium">
-              {month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-            </div>
-            <Button variant="outline" size="icon" onClick={() => nextMonth(1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+
+          <div className="projects">
+            <h3>Projects</h3>
+
+            {visibleProjects.length === 0 ? (
+              <p>No projects</p>
+            ) : (
+              visibleProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className="project"
+                  style={{
+                    background: project.color,
+                    color: "#ffffff",
+                  }}
+                >
+                  {project.name}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">New task</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Task title" />
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        <div className="calendar">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "10px",
+            }}
+          >
+            <button onClick={() => setCurrentMonth(prevMonth(currentMonth))}>
+              ←
+            </button>
 
-              <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} · {p.workspace}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <h2 style={{ margin: 0 }}>{getMonthTitle(currentMonth)}</h2>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
+            <button onClick={() => setCurrentMonth(nextMonth(currentMonth))}>
+              →
+            </button>
+          </div>
 
-                <Select value={repeat} onValueChange={(v) => setRepeat(v as RepeatRule)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Repeat" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No repeat</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <div
+            className="calendar-grid"
+            style={{ marginBottom: "6px", fontWeight: 700 }}
+          >
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+            <div>Sun</div>
+          </div>
 
-              <Button className="w-full" onClick={addTask}>
-                <Plus className="mr-2 h-4 w-4" /> Add task
-              </Button>
-
-              <div className="pt-2">
-                <p className="mb-2 text-sm font-medium">Workspace filter</p>
-                <div className="flex flex-wrap gap-2">
-                  {(["all", "clinic", "family", "study"] as const).map((w) => (
-                    <Button
-                      key={w}
-                      variant={workspaceFilter === w ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setWorkspaceFilter(w)}
-                    >
-                      {w}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-7 gap-3">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-              <div key={d} className="px-2 text-center text-sm font-medium text-slate-500">
-                {d}
-              </div>
-            ))}
-
-            {cells.map((cell, idx) => {
+          <div className="calendar-grid">
+            {monthCells.map((cell, index) => {
               if (!cell) {
-                return <div key={idx} className="min-h-36 rounded-2xl border border-dashed border-slate-200 bg-white/50" />;
+                return <div key={index} className="day"></div>;
               }
 
-              const iso = formatISO(cell);
-              const dayTasks = tasksByDate.get(iso) ?? [];
+              const dayTasks = getTasksForDay(cell);
 
               return (
-                <Card key={iso} className="min-h-36 rounded-2xl shadow-sm">
-                  <CardContent className="space-y-2 p-3">
-                    <div className="text-sm font-semibold">{cell.getDate()}</div>
-                    {dayTasks.length === 0 ? (
-                      <div className="text-xs text-slate-400">No tasks</div>
-                    ) : (
-                      dayTasks.map((task) => {
-                        const project = projectById(task.projectId);
-                        return (
-                          <div
-                            key={task.id}
-                            className={`rounded-xl border p-2 transition ${project.color} ${task.done ? "opacity-45" : "opacity-100"}`}
-                          >
-                            <div className="mb-1 flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-2">
-                                <Checkbox checked={task.done} onCheckedChange={() => toggleDone(task.id)} />
-                                <div>
-                                  <div className={`text-sm ${task.done ? "line-through" : ""}`}>{task.title}</div>
-                                  <div className="mt-1 flex flex-wrap gap-1">
-                                    <Badge variant="secondary">{project.name}</Badge>
-                                    {task.repeat !== "none" && <Badge variant="outline">{task.repeat}</Badge>}
-                                  </div>
-                                </div>
-                              </div>
-                              {task.priority === "high" && <AlertTriangle className="mt-0.5 h-4 w-4" />}
-                            </div>
-                            <div className="flex gap-1 pt-1">
-                              <Button variant="outline" size="sm" onClick={() => moveTask(task.id, -1)}>
-                                ←
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => moveTask(task.id, 1)}>
-                                →
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </CardContent>
-                </Card>
+                <div key={formatDate(cell)} className="day">
+                  <div className="day-number">{cell.getDate()}</div>
+
+                  {dayTasks.map((task) => {
+                    const project = getProjectById(projects, task.projectId);
+
+                    return (
+                      <div
+                        key={task.id}
+                        className={`task ${task.done ? "done" : ""}`}
+                        style={{
+                          background: project ? project.color : "#cbd5e1",
+                          color: "#ffffff",
+                        }}
+                      >
+                        <div>
+                          {task.title}
+                          {renderPriority(task)}
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "4px",
+                            marginTop: "4px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <button onClick={() => toggleTaskDone(task.id)}>
+                            {task.done ? "Undo" : "Done"}
+                          </button>
+                          <button onClick={() => moveTaskByDays(task.id, -1)}>
+                            ←
+                          </button>
+                          <button onClick={() => moveTaskByDays(task.id, 1)}>
+                            →
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>
         </div>
       </div>
+
+      {isTaskModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "12px",
+              padding: "16px",
+              width: "100%",
+              maxWidth: "420px",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Create task</h3>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Task title"
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+              />
+
+              <input
+                type="date"
+                value={newTaskDate}
+                onChange={(e) => setNewTaskDate(e.target.value)}
+              />
+
+              <select
+                value={newTaskWorkspace}
+                onChange={(e) =>
+                  setNewTaskWorkspace(e.target.value as Workspace)
+                }
+              >
+                <option value="work">Nesuda</option>
+                <option value="home">Home</option>
+                <option value="study">Study</option>
+                <option value="promotion">Promotion</option>
+              </select>
+
+              <select
+                value={newTaskProjectId}
+                onChange={(e) => setNewTaskProjectId(e.target.value)}
+              >
+                {workspaceProjectsForModal.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={newTaskPriority}
+                onChange={(e) =>
+                  setNewTaskPriority(
+                    e.target.value as "low" | "medium" | "high"
+                  )
+                }
+              >
+                <option value="low">Low priority</option>
+                <option value="medium">Medium priority</option>
+                <option value="high">High priority</option>
+              </select>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+                marginTop: "16px",
+              }}
+            >
+              <button onClick={closeTaskModal}>Cancel</button>
+              <button onClick={handleCreateTask}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
