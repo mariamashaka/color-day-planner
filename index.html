@@ -163,6 +163,70 @@
     <label>Note
       <textarea id="task-input-note" placeholder="Optional note..." rows="2"></textarea>
     </label>
+
+    <!-- RECURRENCE -->
+    <div id="recurrence-section">
+      <div style="display:flex;align-items:center;gap:10px;padding:2px 0;">
+        <input type="checkbox" id="task-input-repeat"
+          style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;">
+        <label for="task-input-repeat"
+          style="font-size:13px;color:var(--text-secondary);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;">
+          Repeat
+        </label>
+      </div>
+      <div id="recurrence-options" style="display:none;padding:8px 0 0 26px;display:none;flex-direction:column;gap:8px;">
+        <select id="recur-type" style="font-size:13px;padding:5px 8px;border:1.5px solid var(--border);border-radius:5px;background:var(--surface-2);">
+          <option value="daily">Every day</option>
+          <option value="weekly">Every week</option>
+          <option value="nweekly">Every N weeks</option>
+          <option value="monthly-date">Monthly — fixed date</option>
+          <option value="monthly-dow">Monthly — day of week</option>
+        </select>
+
+        <!-- weekly / nweekly: pick day of week -->
+        <div id="recur-dow-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-muted);">On:</span>
+          <div id="recur-dow-btns" style="display:flex;gap:4px;"></div>
+        </div>
+
+        <!-- nweekly: interval -->
+        <div id="recur-interval-row" style="display:none;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--text-muted);">Every</span>
+          <input type="number" id="recur-interval" min="2" max="12" value="2"
+            style="width:52px;font-size:13px;padding:4px 6px;border:1.5px solid var(--border);border-radius:5px;background:var(--surface-2);">
+          <span style="font-size:12px;color:var(--text-muted);">weeks</span>
+        </div>
+
+        <!-- monthly-date: day number -->
+        <div id="recur-mday-row" style="display:none;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--text-muted);">Day</span>
+          <input type="number" id="recur-mday" min="1" max="31" value="1"
+            style="width:52px;font-size:13px;padding:4px 6px;border:1.5px solid var(--border);border-radius:5px;background:var(--surface-2);">
+          <span style="font-size:12px;color:var(--text-muted);">of each month</span>
+        </div>
+
+        <!-- monthly-dow: which week + day -->
+        <div id="recur-mdow-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;">
+          <select id="recur-week-of-month"
+            style="font-size:13px;padding:4px 6px;border:1.5px solid var(--border);border-radius:5px;background:var(--surface-2);">
+            <option value="1">1st</option>
+            <option value="2">2nd</option>
+            <option value="3">3rd</option>
+            <option value="4">4th</option>
+            <option value="-1">Last</option>
+          </select>
+          <div id="recur-mdow-btns" style="display:flex;gap:4px;"></div>
+        </div>
+
+        <!-- end date -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--text-muted);">Until:</span>
+          <input type="date" id="recur-until"
+            style="font-size:13px;padding:4px 6px;border:1.5px solid var(--border);border-radius:5px;background:var(--surface-2);">
+          <span style="font-size:11px;color:var(--text-muted);">(optional)</span>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="popup-footer">
     <button class="secondary-btn popup-close" data-popup="popup-task">Cancel</button>
