@@ -157,6 +157,7 @@ function renderAll() {
   renderWorkspaceTabs();
   renderWeeklyRoutines();
   renderProjects();
+  renderCategories();
   renderDailyRoutines();
   renderCalendar();
   lucide.createIcons();
@@ -313,6 +314,64 @@ function renderProjects() {
     item.appendChild(dot);
     item.appendChild(name);
     item.appendChild(editBtn);
+    list.appendChild(item);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: CATEGORIES
+═══════════════════════════════════════════ */
+function renderCategories() {
+  const list = document.getElementById('categories-list');
+  list.innerHTML = '';
+
+  // show categories filtered by current workspace
+  const cats = isAll() ? data.categories : data.categories.filter(c => c.workspaceId === data.currentWorkspaceId);
+
+  if (cats.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = isAll() ? 'No categories yet' : 'No categories in this workspace';
+    list.appendChild(hint);
+    return;
+  }
+
+  cats.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'project-item'; // reuse same style
+
+    const dot = document.createElement('div');
+    dot.className = 'project-dot';
+    dot.style.background = c.color;
+
+    const name = document.createElement('span');
+    name.className = 'project-name';
+    name.textContent = c.name;
+    name.title = c.name;
+
+    // show workspace label when in All view
+    if (isAll()) {
+      const ws = data.workspaces.find(w => w.id === c.workspaceId);
+      if (ws) {
+        const wsLabel = document.createElement('span');
+        wsLabel.style.cssText = 'font-size:10px;color:var(--text-muted);flex-shrink:0;';
+        wsLabel.textContent = ws.name.split(' ')[0]; // short name
+        item.appendChild(dot);
+        item.appendChild(name);
+        item.appendChild(wsLabel);
+      }
+    } else {
+      item.appendChild(dot);
+      item.appendChild(name);
+    }
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'project-edit-btn';
+    editBtn.title = 'Edit category';
+    editBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+    editBtn.addEventListener('click', () => openCategoryPopup(c.id, null));
+    item.appendChild(editBtn);
+
     list.appendChild(item);
   });
 }
@@ -928,6 +987,7 @@ function initEventListeners() {
   document.getElementById('btn-add-routine').addEventListener('click',    () => openRoutinePopup(null));
   document.getElementById('btn-reset-routines').addEventListener('click', resetWeeklyRoutines);
   document.getElementById('btn-add-project').addEventListener('click',    () => openProjectPopup(null));
+  document.getElementById('btn-add-category').addEventListener('click',   () => openCategoryPopup(null, null));
   document.getElementById('btn-add-morning').addEventListener('click',    () => showInlineAdd('morning', 'btn-add-morning'));
   document.getElementById('btn-add-evening').addEventListener('click',    () => showInlineAdd('evening', 'btn-add-evening'));
   document.getElementById('btn-reset-day').addEventListener('click',      resetDailyRoutines);
