@@ -152,6 +152,79 @@ input:focus, select:focus, textarea:focus { outline: none; }
 .ws-dropdown button:hover { background: var(--surface-2); }
 .ws-dropdown button.danger { color: var(--danger); }
 
+/* Workspace edit ··· button */
+.ws-edit-btn {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.1s;
+  flex-shrink: 0;
+}
+#workspace-tabs div:hover .ws-edit-btn { opacity: 1; }
+.ws-edit-btn:hover { background: var(--border-light); color: var(--text-primary); }
+
+/* Completed weekly routine */
+.routine-item.routine-done .routine-name {
+  text-decoration: line-through;
+  opacity: 0.45;
+}
+.routine-item.routine-done .routine-btn {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Daily routine order/delete buttons */
+.daily-order-btn {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+.daily-item:hover .daily-order-btn { opacity: 1; }
+.daily-order-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+.daily-del-btn:hover { background: var(--danger-light); color: var(--danger); }
+
+/* Day-of-week buttons in recurrence UI */
+.dow-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dow-btn:hover { border-color: var(--accent); color: var(--accent); }
+.dow-btn.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Recurring task indicator in calendar */
+.task-chip.recurring .task-dot {
+  border: 1.5px solid currentColor;
+  background: transparent !important;
+  box-sizing: border-box;
+}
+
 /* ═══════════════════════════════════════════
    BUTTONS
 ═══════════════════════════════════════════ */
