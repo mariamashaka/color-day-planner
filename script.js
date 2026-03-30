@@ -707,8 +707,14 @@ function matchesRule(rule, date) {
       return diffWeeks >= 0 && diffWeeks % rule.interval === 0;
     }
 
-    case 'monthly-date':
-      return dom === rule.dayOfMonth;
+    case 'monthly-date': {
+      const target = rule.dayOfMonth;
+      // Last day of this month
+      const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+      // If target > days in month, fire on last day instead
+      const fireOn = Math.min(target, lastDayOfMonth);
+      return dom === fireOn;
+    }
 
     case 'monthly-dow': {
       // e.g. "2nd Tuesday" or "Last Friday"
@@ -1328,6 +1334,33 @@ function updateRecurrenceRows() {
     type === 'monthly-date' ? 'flex' : 'none';
   document.getElementById('recur-mdow-row').style.display =
     type === 'monthly-dow' ? 'flex' : 'none';
+
+  // Auto-fill day-of-month from the task's date field
+  if (type === 'monthly-date') {
+    const dateVal = document.getElementById('task-input-date').value;
+    if (dateVal) {
+      const d = new Date(dateVal + 'T00:00:00');
+      document.getElementById('recur-mday').value = d.getDate();
+    }
+  }
+  // Auto-select day-of-week from the task's date field
+  if (type === 'weekly' || type === 'nweekly') {
+    const dateVal = document.getElementById('task-input-date').value;
+    if (dateVal) {
+      const d = new Date(dateVal + 'T00:00:00');
+      selectDow('recur-dow-btns', d.getDay());
+    }
+  }
+  if (type === 'monthly-dow') {
+    const dateVal = document.getElementById('task-input-date').value;
+    if (dateVal) {
+      const d = new Date(dateVal + 'T00:00:00');
+      selectDow('recur-mdow-btns', d.getDay());
+      // Auto-set which week of month
+      const weekNum = Math.ceil(d.getDate() / 7);
+      document.getElementById('recur-week-of-month').value = Math.min(weekNum, 4);
+    }
+  }
 }
 
 function resetRecurrenceUI(rule) {
