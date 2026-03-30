@@ -1,16 +1,3 @@
-:root {
-    --bg: #F7F6F3;
-    --surface: #FFFFFF;
-    --border: #E5E3DE;
-    --text-primary: #2D2D2D;
-    --text-secondary: #6B6B6B;
-    --accent: #4A7C59;
-    --accent-hover: #3D6B4A;
-    --danger: #E74C3C;
-    --danger-hover: #c0392b;
-    --done-opacity: 0.6;
-}
-
 * {
     margin: 0;
     padding: 0;
@@ -18,40 +5,22 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background: var(--bg);
-    color: var(--text-primary);
-    height: 100vh;
-    overflow: hidden;
-    font-size: 16px; /* база увеличена */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #F7F6F3;
+    color: #2D2D2D;
+    font-size: 16px;
 }
 
-#app {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-/* Top bar */
+/* Верхняя панель */
 #top-bar {
-    min-height: 64px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    background: white;
+    padding: 12px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 16px;
-    flex-shrink: 0;
-    gap: 12px;
+    border-bottom: 1px solid #E5E3DE;
     flex-wrap: wrap;
-}
-
-#workspace-tabs-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow-x: auto;
-    flex: 1;
+    gap: 12px;
 }
 
 #workspace-tabs {
@@ -61,147 +30,70 @@ body {
 }
 
 .workspace-tab {
-    padding: 8px 16px;
-    border-radius: 32px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
+    padding: 10px 18px;
     font-size: 15px;
+    background: #F0F0F0;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
     font-weight: 500;
-    color: var(--text-secondary);
-    transition: all 0.1s;
-    white-space: nowrap;
 }
 
 .workspace-tab.active {
-    background: var(--accent);
+    background: #4A7C59;
     color: white;
 }
 
-.workspace-tab:not(.active):hover {
-    background: var(--border);
-}
-
-.icon-btn, .icon-btn-sm {
-    background: transparent;
+#add-workspace-btn {
+    background: none;
     border: none;
-    font-size: 22px;
+    font-size: 24px;
     cursor: pointer;
-    padding: 6px 12px;
-    border-radius: 8px;
-    color: var(--text-secondary);
-}
-
-.icon-btn-sm {
-    font-size: 18px;
-    padding: 4px 10px;
+    padding: 5px 12px;
 }
 
 .primary-btn {
-    background: var(--accent);
+    background: #4A7C59;
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 32px;
-    cursor: pointer;
-    font-weight: 600;
+    border-radius: 30px;
     font-size: 15px;
-    white-space: nowrap;
-}
-
-.secondary-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    padding: 8px 16px;
-    border-radius: 24px;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 14px;
 }
 
-.secondary-btn-sm {
-    background: transparent;
-    border: 1px solid var(--border);
-    padding: 6px 12px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 13px;
-    margin-top: 8px;
-}
-
-.danger-btn {
-    background: var(--danger);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.full-width {
-    width: 100%;
-    margin-top: 12px;
-}
-
-/* Main layout */
+/* Основная раскладка */
 #main-layout {
     display: flex;
-    flex: 1;
-    overflow: hidden;
+    height: calc(100vh - 70px);
 }
 
-/* Left panel */
+/* Левая панель */
 #left-panel {
     width: 300px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
+    background: white;
+    border-right: 1px solid #E5E3DE;
     padding: 20px;
-    gap: 28px;
-    flex-shrink: 0;
-}
-
-.panel-section {
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 30px;
 }
 
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.section-header h3 {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-}
-
-.daily-section {
-    margin-top: auto;
-    gap: 20px;
-}
-
-.daily-block h4 {
+.panel-section h3 {
     font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 10px;
-    color: var(--text-secondary);
+    color: #888;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
 }
 
-/* Weekly routines items */
-.routine-item, .project-item, .daily-item {
+.routine-item, .project-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
     font-size: 15px;
 }
 
@@ -212,164 +104,137 @@ body {
 }
 
 .routine-controls button {
-    background: var(--border);
-    border: none;
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: 8px;
+    border: 1px solid #ddd;
+    background: white;
     font-size: 18px;
-    font-weight: bold;
     cursor: pointer;
 }
 
-.routine-count {
+.daily-block {
+    margin-bottom: 20px;
+}
+
+.daily-block h4 {
     font-size: 14px;
-    font-weight: 500;
-    min-width: 45px;
-    text-align: center;
-}
-
-.project-item {
-    cursor: pointer;
-}
-
-.project-color {
-    width: 14px;
-    height: 14px;
-    border-radius: 4px;
-    margin-right: 10px;
+    margin-bottom: 10px;
+    color: #555;
 }
 
 .daily-item {
-    padding: 6px 0;
+    padding: 8px 0;
 }
 
 .daily-item label {
     display: flex;
     align-items: center;
     gap: 10px;
-    cursor: pointer;
     font-size: 15px;
 }
 
-.daily-item input[type="checkbox"] {
+.daily-item input {
     width: 18px;
     height: 18px;
-    cursor: pointer;
 }
 
-.daily-item.done label {
-    text-decoration: line-through;
-    opacity: 0.6;
-}
-
-/* Calendar */
+/* Календарь */
 #calendar-area {
     flex: 1;
-    overflow-y: auto;
     padding: 20px;
+    overflow-y: auto;
 }
 
 #calendar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
-    padding: 0 8px;
+    margin-bottom: 20px;
 }
 
 #current-month-year {
-    font-weight: 700;
-    font-size: 22px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+#prev-month-btn, #next-month-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px 16px;
 }
 
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    background-color: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    gap: 2px;
+    background: #E5E3DE;
+    border: 1px solid #E5E3DE;
+    border-radius: 12px;
     overflow: hidden;
 }
 
 .weekday-header {
-    background: var(--surface);
-    padding: 14px 8px;
+    background: white;
+    padding: 14px;
     text-align: center;
     font-weight: 600;
     font-size: 14px;
-    color: var(--text-secondary);
 }
 
 .calendar-cell {
-    background: var(--surface);
+    background: white;
     min-height: 130px;
-    padding: 10px 8px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    position: relative;
 }
 
 .calendar-cell.today {
     background: #F0F7F0;
 }
 
-.calendar-cell.other-month {
-    background: #FAFAF8;
-    opacity: 0.6;
-}
-
 .cell-date {
     font-size: 15px;
     font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
+    color: #666;
 }
 
 .task-chip {
+    font-size: 13px;
+    padding: 6px 8px;
+    background: #F5F5F5;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
-    padding: 5px 8px;
-    border-radius: 6px;
     cursor: pointer;
-    background: #f5f5f5;
-    margin-bottom: 4px;
-    word-break: break-word;
-}
-
-.task-chip.done {
-    opacity: var(--done-opacity);
-    text-decoration: line-through;
 }
 
 .task-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    flex-shrink: 0;
 }
 
 .cell-actions {
     display: flex;
     gap: 12px;
     margin-top: 6px;
-    font-size: 12px;
 }
 
 .cell-actions button {
-    background: transparent;
+    background: none;
     border: none;
+    font-size: 14px;
     cursor: pointer;
-    font-size: 13px;
-    color: var(--text-secondary);
-    padding: 4px 6px;
+    color: #666;
 }
 
-/* Popups */
+/* Попапы */
 .overlay {
     position: fixed;
     top: 0;
@@ -385,12 +250,12 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: var(--surface);
-    border-radius: 24px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+    background: white;
+    border-radius: 20px;
     z-index: 101;
     width: 90%;
-    max-width: 480px;
+    max-width: 450px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
 .popup-content {
@@ -402,92 +267,49 @@ body {
 
 .popup-content h2 {
     font-size: 22px;
-    font-weight: 600;
-    margin-bottom: 4px;
 }
 
-.popup-content input, 
-.popup-content select, 
+.popup-content input,
+.popup-content select,
 .popup-content textarea {
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    font-family: inherit;
+    padding: 12px;
     font-size: 16px;
-}
-
-.popup-content label {
-    font-size: 14px;
-    font-weight: 500;
+    border: 1px solid #ddd;
+    border-radius: 10px;
 }
 
 .popup-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
-.color-palette {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin: 8px 0;
-}
-
-.color-option {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+.popup-buttons button {
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
     cursor: pointer;
-    border: 3px solid transparent;
-    transition: transform 0.1s;
 }
 
-.color-option.selected {
-    border-color: var(--text-primary);
-    transform: scale(1.05);
-}
-
-/* Mobile */
+/* Мобильная версия */
 @media (max-width: 768px) {
-    body {
-        font-size: 14px;
-    }
-    
     #main-layout {
         flex-direction: column;
     }
     
     #left-panel {
         width: 100%;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        max-height: 45%;
-        padding: 16px;
+        max-height: 40%;
     }
     
     .calendar-cell {
-        min-height: 100px;
-        padding: 6px;
+        min-height: 90px;
     }
     
     .task-chip {
         font-size: 11px;
-        padding: 3px 5px;
-    }
-    
-    .cell-date {
-        font-size: 13px;
-    }
-    
-    .workspace-tab {
-        padding: 6px 12px;
-        font-size: 13px;
-    }
-    
-    .primary-btn {
-        padding: 8px 16px;
-        font-size: 13px;
+        padding: 4px 6px;
     }
 }
