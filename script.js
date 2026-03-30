@@ -171,28 +171,34 @@ function renderWorkspaceTabs() {
   container.innerHTML = '';
 
   data.workspaces.forEach(ws => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;display:flex;align-items:center;';
+
     const btn = document.createElement('button');
     btn.className = 'ws-tab' + (ws.id === data.currentWorkspaceId ? ' active' : '');
     btn.textContent = ws.name;
-
     btn.addEventListener('click', () => {
       document.querySelector('.ws-dropdown')?.remove();
-      if (ws.isAll) { switchWorkspace(ws.id); return; }
-      if (ws.id === data.currentWorkspaceId) {
-        showWsDropdown(btn, ws);
-      } else {
-        switchWorkspace(ws.id);
-      }
+      switchWorkspace(ws.id);
     });
 
-    btn.addEventListener('contextmenu', (e) => {
-      if (ws.isAll) return;
-      e.preventDefault();
-      document.querySelector('.ws-dropdown')?.remove();
-      showWsDropdown(btn, ws);
-    });
+    wrap.appendChild(btn);
 
-    container.appendChild(btn);
+    // Edit button for non-All workspaces
+    if (!ws.isAll) {
+      const editBtn = document.createElement('button');
+      editBtn.className = 'ws-edit-btn';
+      editBtn.title = 'Edit workspace';
+      editBtn.innerHTML = '···';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelector('.ws-dropdown')?.remove();
+        showWsDropdown(wrap, ws);
+      });
+      wrap.appendChild(editBtn);
+    }
+
+    container.appendChild(wrap);
   });
 }
 
@@ -245,28 +251,39 @@ function renderWeeklyRoutines() {
     return;
   }
 
-  routines.forEach(r => {
+  // Sort: incomplete first, completed last
+  const sorted = [...routines].sort((a, b) => {
+    const aDone = a.currentCount >= a.targetCount;
+    const bDone = b.currentCount >= b.targetCount;
+    if (aDone !== bDone) return aDone ? 1 : -1;
+    return 0;
+  });
+
+  sorted.forEach(r => {
+    const completed = r.currentCount >= r.targetCount;
     const item = document.createElement('div');
-    item.className = 'routine-item';
+    item.className = 'routine-item' + (completed ? ' routine-done' : '');
 
     const name = document.createElement('span');
     name.className = 'routine-name';
     name.textContent = r.title;
     name.title = r.title;
-    name.addEventListener('click', () => openRoutinePopup(r.id));
+    name.addEventListener('click', () => { if (!completed) openRoutinePopup(r.id); });
 
     const counter = document.createElement('span');
-    counter.className = 'routine-counter' + (r.currentCount >= r.targetCount ? ' done' : '');
+    counter.className = 'routine-counter' + (completed ? ' done' : '');
     counter.textContent = r.currentCount + '/' + r.targetCount;
 
     const minusBtn = document.createElement('button');
     minusBtn.className = 'routine-btn';
     minusBtn.textContent = '−';
+    minusBtn.disabled = completed;
     minusBtn.addEventListener('click', () => decrementRoutine(r.id));
 
     const plusBtn = document.createElement('button');
     plusBtn.className = 'routine-btn';
     plusBtn.textContent = '+';
+    plusBtn.disabled = completed;
     plusBtn.addEventListener('click', () => incrementRoutine(r.id));
 
     item.appendChild(name);
@@ -387,22 +404,82 @@ function renderDailyRoutines() {
 function renderDailyList(type, containerId) {
   const list = document.getElementById(containerId);
   list.innerHTML = '';
-  data.dailyRoutines[type].forEach(item => {
+  const items = data.dailyRoutines[type];
+
+  items.forEach((item, idx) => {
     const row = document.createElement('div');
     row.className = 'daily-item';
 
+    // Checkbox
     const box = document.createElement('div');
     box.className = 'daily-checkbox' + (item.done ? ' checked' : '');
     box.addEventListener('click', () => toggleDailyRoutine(type, item.id));
 
+    // Label (click to edit inline)
     const label = document.createElement('span');
     label.className = 'daily-label' + (item.done ? ' done' : '');
     label.textContent = item.title;
+    label.title = 'Click to edit';
+    label.style.cursor = 'text';
+    label.addEventListener('click', () => startInlineEdit(type, item.id, label));
+
+    // Up button
+    const upBtn = document.createElement('button');
+    upBtn.className = 'daily-order-btn';
+    upBtn.textContent = '↑';
+    upBtn.title = 'Move up';
+    upBtn.style.display = idx === 0 ? 'none' : '';
+    upBtn.addEventListener('click', () => moveDailyRoutine(type, idx, -1));
+
+    // Down button
+    const downBtn = document.createElement('button');
+    downBtn.className = 'daily-order-btn';
+    downBtn.textContent = '↓';
+    downBtn.title = 'Move down';
+    downBtn.style.display = idx === items.length - 1 ? 'none' : '';
+    downBtn.addEventListener('click', () => moveDailyRoutine(type, idx, 1));
+
+    // Delete button
+    const delBtn = document.createElement('button');
+    delBtn.className = 'daily-order-btn daily-del-btn';
+    delBtn.textContent = '×';
+    delBtn.title = 'Delete';
+    delBtn.addEventListener('click', () => deleteDailyRoutine(type, item.id));
 
     row.appendChild(box);
     row.appendChild(label);
+    row.appendChild(upBtn);
+    row.appendChild(downBtn);
+    row.appendChild(delBtn);
     list.appendChild(row);
   });
+}
+
+function startInlineEdit(type, id, labelEl) {
+  const item = data.dailyRoutines[type].find(x => x.id === id);
+  if (!item) return;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = item.title;
+  input.className = 'daily-inline-input';
+  input.style.flex = '1';
+
+  labelEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const commit = () => {
+    const val = input.value.trim();
+    if (val) { item.title = val; saveData(); }
+    renderDailyRoutines();
+  };
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  commit();
+    if (e.key === 'Escape') renderDailyRoutines();
+  });
+  input.addEventListener('blur', commit);
 }
 
 /* ═══════════════════════════════════════════
@@ -465,7 +542,9 @@ function buildCell(ds, otherMonth) {
 
   tasks.forEach(t => {
     const chip = document.createElement('div');
-    chip.className = 'task-chip' + (t.done ? ' done' : '');
+    chip.className = 'task-chip'
+      + (t.done ? ' done' : '')
+      + (t.recurringTemplateId ? ' recurring' : '');
 
     const dot = document.createElement('div');
     dot.className = 'task-dot';
@@ -585,6 +664,148 @@ function moveTask(id, newDate) {
 }
 
 /* ═══════════════════════════════════════════
+   RECURRENCE ENGINE
+═══════════════════════════════════════════ */
+
+// Returns array of "YYYY-MM-DD" strings that a recurrence rule fires on,
+// between startDate (inclusive) and endDate (inclusive).
+function getRecurrenceDates(rule, startDate, endDate) {
+  const dates = [];
+  const end   = new Date(endDate   + 'T00:00:00');
+  const cur   = new Date(startDate + 'T00:00:00');
+  const until = rule.until ? new Date(rule.until + 'T00:00:00') : end;
+  const stop  = until < end ? until : end;
+
+  while (cur <= stop) {
+    const ds = cur.toISOString().slice(0, 10);
+    if (matchesRule(rule, cur)) dates.push(ds);
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
+}
+
+function matchesRule(rule, date) {
+  const dow  = date.getDay(); // 0=Sun … 6=Sat
+  const dom  = date.getDate();
+  const month = date.getMonth();
+  const year  = date.getFullYear();
+
+  switch (rule.type) {
+    case 'daily':
+      return true;
+
+    case 'weekly':
+      // rule.dayOfWeek: 0=Sun…6=Sat
+      return dow === rule.dayOfWeek;
+
+    case 'nweekly': {
+      // every N weeks on a specific day, anchored to rule.anchor date
+      if (dow !== rule.dayOfWeek) return false;
+      const anchor = new Date(rule.anchor + 'T00:00:00');
+      const diffMs = date - anchor;
+      const diffWeeks = Math.round(diffMs / (7 * 86400000));
+      return diffWeeks >= 0 && diffWeeks % rule.interval === 0;
+    }
+
+    case 'monthly-date':
+      return dom === rule.dayOfMonth;
+
+    case 'monthly-dow': {
+      // e.g. "2nd Tuesday" or "Last Friday"
+      if (dow !== rule.dayOfWeek) return false;
+      if (rule.weekOfMonth === -1) {
+        // last occurrence of this weekday in the month
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        return dom > lastDay - 7;
+      }
+      // Nth occurrence: count how many times this weekday has appeared so far
+      const occurrence = Math.ceil(dom / 7);
+      return occurrence === rule.weekOfMonth;
+    }
+
+    default:
+      return false;
+  }
+}
+
+// Called on init and when navigating months — generates instances for next 90 days
+function generateRecurringInstances() {
+  const today  = todayStr();
+  const future = shiftDate(today, 90);
+
+  // Find all template tasks (have recurrence, not themselves instances)
+  const templates = data.tasks.filter(t => t.recurrence && !t.recurringTemplateId);
+
+  templates.forEach(tmpl => {
+    const dates = getRecurrenceDates(tmpl.recurrence, today, future);
+    dates.forEach(ds => {
+      // Skip if instance already exists for this date
+      const exists = data.tasks.some(t =>
+        t.recurringTemplateId === tmpl.id && t.date === ds
+      );
+      if (!exists) {
+        data.tasks.push({
+          id:                  genId(),
+          title:               tmpl.title,
+          date:                ds,
+          categoryId:          tmpl.categoryId,
+          workspaceId:         tmpl.workspaceId,
+          projectId:           tmpl.projectId,
+          note:                '',
+          done:                false,
+          priority:            tmpl.priority || false,
+          recurringTemplateId: tmpl.id,   // link back to template
+        });
+      }
+    });
+  });
+  saveData();
+}
+
+// Delete options for recurring task
+function deleteRecurringTask(taskId) {
+  const t = data.tasks.find(x => x.id === taskId);
+  if (!t) return;
+
+  if (t.recurringTemplateId) {
+    // It's an instance — ask: just this, or this + future
+    showDeleteRecurModal(t);
+  } else if (t.recurrence) {
+    // It's the template itself — delete template + all future instances
+    if (confirm('Delete this recurring task and all its future instances?')) {
+      const today = todayStr();
+      data.tasks = data.tasks.filter(x =>
+        x.id !== taskId &&
+        !(x.recurringTemplateId === taskId && x.date >= today && !x.done)
+      );
+      saveData(); renderAll();
+    }
+  } else {
+    deleteTask(taskId);
+  }
+}
+
+function showDeleteRecurModal(instance) {
+  // Simple confirm-based choice (no extra popup needed)
+  const choice = confirm(
+    'Delete just this occurrence?\n\nOK = only this date\nCancel = this + all future instances'
+  );
+  if (choice) {
+    // just this one
+    data.tasks = data.tasks.filter(x => x.id !== instance.id);
+  } else {
+    // this + all future not-done instances of same template
+    data.tasks = data.tasks.filter(x =>
+      x.id !== instance.id &&
+      !(x.recurringTemplateId === instance.recurringTemplateId &&
+        x.date >= instance.date && !x.done)
+    );
+  }
+  saveData(); renderAll();
+  closePopup('popup-task');
+}
+
+/* ═══════════════════════════════════════════
    ROUTINE ACTIONS
 ═══════════════════════════════════════════ */
 function incrementRoutine(id) {
@@ -618,6 +839,21 @@ function addDailyRoutine(type, title) {
   if (!title.trim()) return;
   const prefix = type === 'morning' ? 'mr_' : 'er_';
   data.dailyRoutines[type].push({ id: prefix + genId(), title: title.trim(), done: false });
+  saveData(); renderDailyRoutines();
+}
+
+function deleteDailyRoutine(type, id) {
+  data.dailyRoutines[type] = data.dailyRoutines[type].filter(x => x.id !== id);
+  saveData(); renderDailyRoutines();
+}
+
+function moveDailyRoutine(type, idx, delta) {
+  const arr = data.dailyRoutines[type];
+  const newIdx = idx + delta;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  const tmp = arr[idx];
+  arr[idx] = arr[newIdx];
+  arr[newIdx] = tmp;
   saveData(); renderDailyRoutines();
 }
 
@@ -702,6 +938,20 @@ function openTaskPopup(taskId, prefillDate) {
 
   openPopup('popup-task');
   document.getElementById('task-input-title').focus();
+
+  // Load recurrence UI state
+  const repeatCb = document.getElementById('task-input-repeat');
+  if (isNew || !editingId) {
+    repeatCb.checked = false;
+    showRecurrenceOptions(false);
+    resetRecurrenceUI(null);
+  } else {
+    const t = data.tasks.find(x => x.id === editingId);
+    const hasRecur = !!(t && t.recurrence && !t.recurringTemplateId);
+    repeatCb.checked = hasRecur;
+    showRecurrenceOptions(hasRecur);
+    resetRecurrenceUI(hasRecur ? t.recurrence : null);
+  }
 }
 
 function populateCategorySelect(wsId, selectedCatId) {
@@ -721,6 +971,8 @@ function saveTask() {
 
   const doneCb     = document.getElementById('task-input-done');
   const priorityCb = document.getElementById('task-input-priority');
+  const repeatCb   = document.getElementById('task-input-repeat');
+
   const fields = {
     title,
     date:        document.getElementById('task-input-date').value || todayStr(),
@@ -730,10 +982,17 @@ function saveTask() {
     note:        document.getElementById('task-input-note').value,
     done:        doneCb     ? doneCb.checked     : false,
     priority:    priorityCb ? priorityCb.checked : false,
+    recurrence:  (repeatCb && repeatCb.checked) ? buildRecurrenceRule() : null,
   };
 
-  if (editingId) { updateTask(editingId, fields); }
-  else           { createTask(fields); }
+  if (editingId) {
+    updateTask(editingId, fields);
+    // Regenerate instances if recurrence changed
+    if (fields.recurrence) generateRecurringInstances();
+  } else {
+    createTask(fields);
+    if (fields.recurrence) generateRecurringInstances();
+  }
   closePopup('popup-task');
 }
 
@@ -1018,8 +1277,133 @@ function injectDoneToggle() {
 }
 
 /* ═══════════════════════════════════════════
-   EVENT LISTENERS
+   RECURRENCE UI
 ═══════════════════════════════════════════ */
+const DOW_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function initRecurrenceUI() {
+  // Build day-of-week button groups
+  buildDowBtns('recur-dow-btns');
+  buildDowBtns('recur-mdow-btns');
+
+  // Toggle options visibility
+  document.getElementById('task-input-repeat').addEventListener('change', e => {
+    showRecurrenceOptions(e.target.checked);
+  });
+
+  // Type change
+  document.getElementById('recur-type').addEventListener('change', updateRecurrenceRows);
+}
+
+function buildDowBtns(containerId) {
+  const container = document.getElementById(containerId);
+  DOW_LABELS.forEach((lbl, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = lbl;
+    btn.dataset.dow = idx;
+    btn.className = 'dow-btn';
+    btn.addEventListener('click', () => {
+      // single select within this group
+      container.querySelectorAll('.dow-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    container.appendChild(btn);
+  });
+}
+
+function showRecurrenceOptions(show) {
+  const opts = document.getElementById('recurrence-options');
+  opts.style.display = show ? 'flex' : 'none';
+  if (show) updateRecurrenceRows();
+}
+
+function updateRecurrenceRows() {
+  const type = document.getElementById('recur-type').value;
+  document.getElementById('recur-dow-row').style.display =
+    (type === 'weekly' || type === 'nweekly') ? 'flex' : 'none';
+  document.getElementById('recur-interval-row').style.display =
+    type === 'nweekly' ? 'flex' : 'none';
+  document.getElementById('recur-mday-row').style.display =
+    type === 'monthly-date' ? 'flex' : 'none';
+  document.getElementById('recur-mdow-row').style.display =
+    type === 'monthly-dow' ? 'flex' : 'none';
+}
+
+function resetRecurrenceUI(rule) {
+  const typeEl = document.getElementById('recur-type');
+  if (!rule) {
+    typeEl.value = 'weekly';
+    selectDow('recur-dow-btns', 1); // Monday default
+    selectDow('recur-mdow-btns', 1);
+    document.getElementById('recur-interval').value = 2;
+    document.getElementById('recur-mday').value = 1;
+    document.getElementById('recur-week-of-month').value = 1;
+    document.getElementById('recur-until').value = '';
+    updateRecurrenceRows();
+    return;
+  }
+  typeEl.value = rule.type;
+  document.getElementById('recur-interval').value = rule.interval || 2;
+  document.getElementById('recur-mday').value = rule.dayOfMonth || 1;
+  document.getElementById('recur-week-of-month').value = rule.weekOfMonth || 1;
+  document.getElementById('recur-until').value = rule.until || '';
+  if (rule.dayOfWeek !== undefined) {
+    selectDow('recur-dow-btns',  rule.dayOfWeek);
+    selectDow('recur-mdow-btns', rule.dayOfWeek);
+  }
+  updateRecurrenceRows();
+}
+
+function selectDow(containerId, dow) {
+  const container = document.getElementById(containerId);
+  container.querySelectorAll('.dow-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.dow) === dow);
+  });
+}
+
+function getSelectedDow(containerId) {
+  const sel = document.getElementById(containerId).querySelector('.dow-btn.selected');
+  return sel ? parseInt(sel.dataset.dow) : 1;
+}
+
+function buildRecurrenceRule() {
+  const type     = document.getElementById('recur-type').value;
+  const until    = document.getElementById('recur-until').value || null;
+  const startDate = document.getElementById('task-input-date').value || todayStr();
+
+  switch (type) {
+    case 'daily':
+      return { type: 'daily', until };
+
+    case 'weekly':
+      return { type: 'weekly', dayOfWeek: getSelectedDow('recur-dow-btns'), until };
+
+    case 'nweekly':
+      return {
+        type: 'nweekly',
+        dayOfWeek: getSelectedDow('recur-dow-btns'),
+        interval:  parseInt(document.getElementById('recur-interval').value) || 2,
+        anchor:    startDate,
+        until,
+      };
+
+    case 'monthly-date':
+      return {
+        type: 'monthly-date',
+        dayOfMonth: parseInt(document.getElementById('recur-mday').value) || 1,
+        until,
+      };
+
+    case 'monthly-dow':
+      return {
+        type: 'monthly-dow',
+        weekOfMonth: parseInt(document.getElementById('recur-week-of-month').value),
+        dayOfWeek:   getSelectedDow('recur-mdow-btns'),
+        until,
+      };
+  }
+}
 function initEventListeners() {
   document.getElementById('overlay').addEventListener('click', closeActivePopup);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeActivePopup(); });
@@ -1052,7 +1436,7 @@ function initEventListeners() {
   });
   document.getElementById('btn-task-save').addEventListener('click', saveTask);
   document.getElementById('btn-task-delete').addEventListener('click', () => {
-    if (editingId) { deleteTask(editingId); closePopup('popup-task'); }
+    if (editingId) deleteRecurringTask(editingId);
   });
 
   // Workspace popup
@@ -1093,5 +1477,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadData();
   injectDoneToggle();
   initEventListeners();
+  initRecurrenceUI();
+  generateRecurringInstances();
   renderAll();
 });
