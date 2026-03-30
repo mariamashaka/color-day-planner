@@ -453,7 +453,16 @@ function buildCell(ds, otherMonth) {
   dayNum.textContent = parseInt(ds.slice(8));
   cell.appendChild(dayNum);
 
-  const tasks = getTasksForDate(ds);
+  // Sort: priority first, then normal, done always last
+  const tasks = getTasksForDate(ds).sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    if (a.priority !== b.priority) return a.priority ? -1 : 1;
+    return 0;
+  });
+
+  const taskList = document.createElement('div');
+  taskList.className = 'cell-task-list';
+
   tasks.forEach(t => {
     const chip = document.createElement('div');
     chip.className = 'task-chip' + (t.done ? ' done' : '');
@@ -464,15 +473,25 @@ function buildCell(ds, otherMonth) {
       ? getCategoryColor(t.categoryId)
       : (t.projectId ? getProjectColor(t.projectId) : '#AAA49C');
 
+    chip.appendChild(dot);
+
+    if (t.priority && !t.done) {
+      const excl = document.createElement('span');
+      excl.className = 'task-priority-icon';
+      excl.textContent = '!';
+      chip.appendChild(excl);
+    }
+
     const label = document.createElement('span');
     label.className = 'task-chip-label';
     label.textContent = t.title;
-
-    chip.appendChild(dot);
     chip.appendChild(label);
+
     chip.addEventListener('click', e => { e.stopPropagation(); openTaskPopup(t.id, null); });
-    cell.appendChild(chip);
+    taskList.appendChild(chip);
   });
+
+  cell.appendChild(taskList);
 
   const actions = document.createElement('div');
   actions.className = 'cal-cell-actions';
@@ -654,7 +673,8 @@ function openTaskPopup(taskId, prefillDate) {
     projSelect.appendChild(opt);
   });
 
-  const doneCb = document.getElementById('task-input-done');
+  const doneCb     = document.getElementById('task-input-done');
+  const priorityCb = document.getElementById('task-input-priority');
 
   if (isNew) {
     document.getElementById('task-input-title').value = '';
@@ -666,7 +686,8 @@ function openTaskPopup(taskId, prefillDate) {
     wsSelect.value = defWs;
     populateCategorySelect(defWs, '');
     projSelect.value = '';
-    if (doneCb) doneCb.checked = false;
+    if (doneCb)     doneCb.checked     = false;
+    if (priorityCb) priorityCb.checked = false;
   } else {
     const t = data.tasks.find(x => x.id === taskId);
     document.getElementById('task-input-title').value = t.title;
@@ -675,7 +696,8 @@ function openTaskPopup(taskId, prefillDate) {
     wsSelect.value   = t.workspaceId || '';
     projSelect.value = t.projectId   || '';
     populateCategorySelect(t.workspaceId, t.categoryId);
-    if (doneCb) doneCb.checked = t.done || false;
+    if (doneCb)     doneCb.checked     = t.done     || false;
+    if (priorityCb) priorityCb.checked = t.priority || false;
   }
 
   openPopup('popup-task');
@@ -697,7 +719,8 @@ function saveTask() {
   const title = document.getElementById('task-input-title').value.trim();
   if (!title) { document.getElementById('task-input-title').focus(); return; }
 
-  const doneCb = document.getElementById('task-input-done');
+  const doneCb     = document.getElementById('task-input-done');
+  const priorityCb = document.getElementById('task-input-priority');
   const fields = {
     title,
     date:        document.getElementById('task-input-date').value || todayStr(),
@@ -705,7 +728,8 @@ function saveTask() {
     categoryId:  document.getElementById('task-input-category').value,
     projectId:   document.getElementById('task-input-project').value,
     note:        document.getElementById('task-input-note').value,
-    done:        doneCb ? doneCb.checked : false,
+    done:        doneCb     ? doneCb.checked     : false,
+    priority:    priorityCb ? priorityCb.checked : false,
   };
 
   if (editingId) { updateTask(editingId, fields); }
@@ -953,23 +977,44 @@ function showInlineAdd(type, afterBtnId) {
 function injectDoneToggle() {
   if (document.getElementById('task-input-done')) return;
   const body = document.querySelector('#popup-task .popup-body');
-  const row  = document.createElement('div');
-  row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:2px 0;';
 
-  const cb = document.createElement('input');
-  cb.type = 'checkbox';
-  cb.id   = 'task-input-done';
-  cb.style.cssText = 'width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;';
+  // Priority row
+  const priorityRow = document.createElement('div');
+  priorityRow.style.cssText = 'display:flex;align-items:center;gap:10px;padding:2px 0;';
 
-  const lbl = document.createElement('label');
-  lbl.htmlFor     = 'task-input-done';
-  lbl.textContent = 'Mark as done';
-  lbl.style.cssText = 'font-size:13px;color:var(--text-secondary);cursor:pointer;'
+  const priorityCb = document.createElement('input');
+  priorityCb.type = 'checkbox';
+  priorityCb.id   = 'task-input-priority';
+  priorityCb.style.cssText = 'width:16px;height:16px;accent-color:#D4AC0D;cursor:pointer;flex-shrink:0;';
+
+  const priorityLbl = document.createElement('label');
+  priorityLbl.htmlFor     = 'task-input-priority';
+  priorityLbl.innerHTML   = '<span style="color:#D4AC0D;font-weight:700;margin-right:4px;">!</span> Priority';
+  priorityLbl.style.cssText = 'font-size:13px;color:var(--text-secondary);cursor:pointer;'
+    + 'text-transform:none;letter-spacing:0;font-weight:400;display:flex;align-items:center;';
+
+  priorityRow.appendChild(priorityCb);
+  priorityRow.appendChild(priorityLbl);
+  body.appendChild(priorityRow);
+
+  // Done row
+  const doneRow = document.createElement('div');
+  doneRow.style.cssText = 'display:flex;align-items:center;gap:10px;padding:2px 0;';
+
+  const doneCb = document.createElement('input');
+  doneCb.type = 'checkbox';
+  doneCb.id   = 'task-input-done';
+  doneCb.style.cssText = 'width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;';
+
+  const doneLbl = document.createElement('label');
+  doneLbl.htmlFor     = 'task-input-done';
+  doneLbl.textContent = 'Mark as done';
+  doneLbl.style.cssText = 'font-size:13px;color:var(--text-secondary);cursor:pointer;'
     + 'text-transform:none;letter-spacing:0;font-weight:400;';
 
-  row.appendChild(cb);
-  row.appendChild(lbl);
-  body.appendChild(row);
+  doneRow.appendChild(doneCb);
+  doneRow.appendChild(doneLbl);
+  body.appendChild(doneRow);
 }
 
 /* ═══════════════════════════════════════════
