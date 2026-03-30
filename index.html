@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Color Day Planner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="top-bar">
+            <div id="workspace-tabs-container">
+                <div id="workspace-tabs"></div>
+                <button id="add-workspace-btn" class="icon-btn">+</button>
+            </div>
+            <button id="create-task-global-btn" class="primary-btn">+ Create Task</button>
+        </div>
+
+        <div id="main-layout">
+            <aside id="left-panel">
+                <div class="panel-section">
+                    <div class="section-header">
+                        <h3>WEEKLY ROUTINES</h3>
+                        <div>
+                            <button id="add-routine-btn" class="icon-btn-sm">+</button>
+                            <button id="reset-weekly-routines-btn" class="icon-btn-sm">↺</button>
+                        </div>
+                    </div>
+                    <div id="weekly-routines-list"></div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="section-header">
+                        <h3>PROJECTS</h3>
+                        <button id="add-project-btn" class="icon-btn-sm">+</button>
+                    </div>
+                    <div id="projects-list"></div>
+                </div>
+
+                <div class="panel-section daily-section">
+                    <div class="daily-block">
+                        <h4>MORNING</h4>
+                        <div id="morning-routines-list"></div>
+                        <button class="add-daily-btn secondary-btn-sm" data-time="morning">+ Add</button>
+                    </div>
+                    <div class="daily-block">
+                        <h4>EVENING</h4>
+                        <div id="evening-routines-list"></div>
+                        <button class="add-daily-btn secondary-btn-sm" data-time="evening">+ Add</button>
+                    </div>
+                    <button id="reset-day-btn" class="secondary-btn full-width">Reset day</button>
+                </div>
+            </aside>
+
+            <main id="calendar-area">
+                <div id="calendar-header">
+                    <button id="prev-month-btn" class="icon-btn-sm">←</button>
+                    <span id="current-month-year"></span>
+                    <button id="next-month-btn" class="icon-btn-sm">→</button>
+                </div>
+                <div id="calendar-grid" class="calendar-grid">
+                    <!-- заголовки дней недели и ячейки будут добавлены JS -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Попапы -->
+    <div id="overlay" class="overlay" style="display: none;"></div>
+    
+    <div id="popup-task" class="popup" style="display: none;">
+        <div class="popup-content">
+            <h2 id="task-popup-title">New Task</h2>
+            <input type="text" id="task-title" placeholder="Task title" autocomplete="off">
+            <input type="date" id="task-date">
+            <select id="task-workspace"></select>
+            <select id="task-category"></select>
+            <select id="task-project">
+                <option value="">No project</option>
+            </select>
+            <textarea id="task-note" placeholder="Note (optional)" rows="2"></textarea>
+            <div class="popup-buttons">
+                <button id="task-cancel-btn" class="secondary-btn">Cancel</button>
+                <button id="task-delete-btn" class="danger-btn" style="display: none;">Delete</button>
+                <button id="task-save-btn" class="primary-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-workspace" class="popup" style="display: none;">
+        <div class="popup-content">
+            <h2 id="workspace-popup-title">New Workspace</h2>
+            <input type="text" id="workspace-name" placeholder="Workspace name">
+            <div class="popup-buttons">
+                <button id="workspace-cancel-btn" class="secondary-btn">Cancel</button>
+                <button id="workspace-delete-btn" class="danger-btn" style="display: none;">Delete</button>
+                <button id="workspace-save-btn" class="primary-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-routine" class="popup" style="display: none;">
+        <div class="popup-content">
+            <h2 id="routine-popup-title">New Routine</h2>
+            <input type="text" id="routine-title" placeholder="Routine name">
+            <label>Times per week: <input type="number" id="routine-target" min="1" value="3"></label>
+            <select id="routine-workspace"></select>
+            <div class="popup-buttons">
+                <button id="routine-cancel-btn" class="secondary-btn">Cancel</button>
+                <button id="routine-delete-btn" class="danger-btn" style="display: none;">Delete</button>
+                <button id="routine-save-btn" class="primary-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-project" class="popup" style="display: none;">
+        <div class="popup-content">
+            <h2 id="project-popup-title">New Project</h2>
+            <input type="text" id="project-name" placeholder="Project name">
+            <div class="color-palette" id="project-color-palette"></div>
+            <div class="popup-buttons">
+                <button id="project-cancel-btn" class="secondary-btn">Cancel</button>
+                <button id="project-delete-btn" class="danger-btn" style="display: none;">Delete</button>
+                <button id="project-save-btn" class="primary-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-category" class="popup" style="display: none;">
+        <div class="popup-content">
+            <h2 id="category-popup-title">New Category</h2>
+            <input type="text" id="category-name" placeholder="Category name">
+            <div class="color-palette" id="category-color-palette"></div>
+            <select id="category-workspace"></select>
+            <div class="popup-buttons">
+                <button id="category-cancel-btn" class="secondary-btn">Cancel</button>
+                <button id="category-delete-btn" class="danger-btn" style="display: none;">Delete</button>
+                <button id="category-save-btn" class="primary-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-move-task" class="popup" style="display: none;">
+        <div class="popup-content">
+            <h2>Move task</h2>
+            <div id="move-task-list"></div>
+            <input type="date" id="move-task-new-date">
+            <div class="popup-buttons">
+                <button id="move-cancel-btn" class="secondary-btn">Cancel</button>
+                <button id="move-confirm-btn" class="primary-btn">Move</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
