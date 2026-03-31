@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tracker — Day Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Tracker-specific styles ── */
+    #tracker-app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #tracker-top {
+      height: 52px;
+      min-height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      margin-right: auto;
+    }
+    .nav-link {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-link:hover { background: var(--surface-2); color: var(--text-primary); }
+    .nav-link.active { background: var(--accent-light); color: var(--accent); }
+
+    #tracker-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left: tracker list */
+    #tracker-sidebar {
+      width: 200px;
+      min-width: 200px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .tracker-sidebar-header {
+      padding: 14px 12px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .tracker-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+      border-bottom: 1px solid var(--border-light);
+      position: relative;
+    }
+    .tracker-tab:hover { background: var(--surface-2); color: var(--text-primary); }
+    .tracker-tab.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+
+    .tracker-tab-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .tracker-tab-count {
+      margin-left: auto;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .tracker-tab-edit {
+      opacity: 0;
+      color: var(--text-muted);
+      width: 18px; height: 18px;
+      border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.15s;
+    }
+    .tracker-tab:hover .tracker-tab-edit { opacity: 1; }
+    .tracker-tab-edit:hover { background: var(--surface-2); color: var(--text-primary); }
+    .tracker-tab-edit svg { width: 11px; height: 11px; }
+
+    /* Right: entries */
+    #tracker-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #tracker-toolbar {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    #tracker-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .status-filter {
+      display: flex;
+      gap: 4px;
+    }
+    .status-pill {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      color: var(--text-secondary);
+      background: transparent;
+      transition: all 0.12s;
+    }
+    .status-pill:hover { border-color: var(--accent); color: var(--accent); }
+    .status-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .status-pill[data-status="want"].active    { background: #4A90D9; border-color: #4A90D9; }
+    .status-pill[data-status="doing"].active   { background: #E07B3A; border-color: #E07B3A; }
+    .status-pill[data-status="done"].active    { background: #27AE60; border-color: #27AE60; }
+
+    #entries-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+    }
+
+    .entries-empty {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: 60px;
+      font-style: italic;
+    }
+
+    /* Entry card */
+    .entry-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .entry-card:hover { border-color: var(--border); box-shadow: var(--shadow-sm); }
+
+    .entry-status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .entry-status-dot[data-status="want"]  { background: #4A90D9; }
+    .entry-status-dot[data-status="doing"] { background: #E07B3A; }
+    .entry-status-dot[data-status="done"]  { background: #27AE60; }
+
+    .entry-info { flex: 1; min-width: 0; }
+
+    .entry-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .entry-card[data-done="true"] .entry-title {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+
+    .entry-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .entry-note {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .entry-status-badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .entry-status-badge[data-status="want"]  { background: #EAF2FB; color: #4A90D9; }
+    .entry-status-badge[data-status="doing"] { background: #FDF3EC; color: #E07B3A; }
+    .entry-status-badge[data-status="done"]  { background: #EAF7F0; color: #27AE60; }
+
+    /* ── POPUPS (tracker-specific) ── */
+    #popup-tracker-type .popup-body,
+    #popup-entry .popup-body {
+      gap: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="tracker-app">
+
+  <!-- TOP BAR -->
+  <header id="tracker-top">
+    <nav class="nav-links">
+      <a href="index.html" class="nav-link">📅 Planner</a>
+      <a href="tracker.html" class="nav-link active">📚 Tracker</a>
+    </nav>
+    <button class="primary-btn" id="btn-add-entry" disabled>
+      <i data-lucide="plus"></i> Add entry
+    </button>
+  </header>
+
+  <div id="tracker-body">
+
+    <!-- SIDEBAR: tracker types -->
+    <aside id="tracker-sidebar">
+      <div class="tracker-sidebar-header">
+        <span class="section-title">My Trackers</span>
+        <button class="icon-btn" id="btn-add-tracker-type" title="Create tracker">
+          <i data-lucide="plus"></i>
+        </button>
+      </div>
+      <div id="tracker-types-list">
+        <!-- rendered by JS -->
+      </div>
+    </aside>
+
+    <!-- MAIN: entries -->
+    <main id="tracker-main">
+      <div id="tracker-toolbar">
+        <span id="tracker-title">Select a tracker</span>
+        <div class="status-filter" id="status-filter">
+          <button class="status-pill active" data-status="all">All</button>
+          <button class="status-pill" data-status="want">Want</button>
+          <button class="status-pill" data-status="doing">Doing</button>
+          <button class="status-pill" data-status="done">Done</button>
+        </div>
+      </div>
+      <div id="entries-area">
+        <div class="entries-empty">← Select or create a tracker</div>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay"></div>
+
+<!-- POPUP: New/Edit Tracker Type -->
+<div class="popup" id="popup-tracker-type">
+  <div class="popup-header">
+    <span class="popup-title" id="popup-tracker-type-title">New Tracker</span>
+    <button class="icon-btn popup-close" data-popup="popup-tracker-type"><i data-lucide="x"></i></button>
+  </div>
+  <div class="popup-body">
+    <label>Name
+      <input type="text" id="ttype-input-name" placeholder="e.g. Books, Movies, Trips..." />
+    </label>
+    <label>Color
+      <div class="color-swatches" id="ttype-color-swatches"></div>
+    </label>
+    <label>Icon (emoji)
+      <input type="text" id="ttype-input-icon" placeholder="📚" maxlength="2" style="width:60px;" />
+    </label>
+  </div>
+  <div class="popup-footer">
+    <button class="secondary-btn popup-close" data-popup="popup-tracker-type">Cancel</button>
+    <button class="danger-btn" id="btn-ttype-delete" style="display:none;">Delete</button>
+    <button class="primary-btn" id="btn-ttype-save">Save</button>
+  </div>
+</div>
+
+<!-- POPUP: New/Edit Entry -->
+<div class="popup" id="popup-entry">
+  <div class="popup-header">
+    <span class="popup-title" id="popup-entry-title">New Entry</span>
+    <button class="icon-btn popup-close" data-popup="popup-entry"><i data-lucide="x"></i></button>
+  </div>
+  <div class="popup-body">
+    <label>Title
+      <input type="text" id="entry-input-title" placeholder="Name of book, film, trip..." />
+    </label>
+    <label>Status
+      <select id="entry-input-status">
+        <option value="want">Want</option>
+        <option value="doing">In progress</option>
+        <option value="done">Done</option>
+      </select>
+    </label>
+    <label>Date
+      <input type="date" id="entry-input-date" />
+    </label>
+    <label>With kids
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
+        <input type="checkbox" id="entry-input-kids"
+          style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;" />
+        <label for="entry-input-kids"
+          style="font-size:13px;color:var(--text-secondary);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;">
+          With kids
+        </label>
+      </div>
+    </label>
+    <label>Note
+      <textarea id="entry-input-note" placeholder="Optional note..." rows="2"></textarea>
+    </label>
+    <label>Rating
+      <div id="entry-rating-stars" style="display:flex;gap:6px;padding:4px 0;"></div>
+    </label>
+  </div>
+  <div class="popup-footer">
+    <button class="secondary-btn popup-close" data-popup="popup-entry">Cancel</button>
+    <button class="danger-btn" id="btn-entry-delete" style="display:none;">Delete</button>
+    <button class="primary-btn" id="btn-entry-save">Save</button>
+  </div>
+</div>
+
+<script src="tracker.js"></script>
+</body>
+</html>
