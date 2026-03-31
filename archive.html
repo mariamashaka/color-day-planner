@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Archive — Day Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { overflow: hidden; }
+
+    #archive-app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    #archive-top {
+      height: 52px;
+      min-height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      margin-right: auto;
+    }
+    .nav-link {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-link:hover { background: var(--surface-2); color: var(--text-primary); }
+    .nav-link.active { background: var(--accent-light); color: var(--accent); }
+
+    /* ── Filters bar ── */
+    #filters-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .filter-group select,
+    .filter-group input[type="date"] {
+      font-family: var(--font-body);
+      font-size: 13px;
+      padding: 5px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .filter-group select:focus,
+    .filter-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    #filter-view-tabs {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+    .view-tab {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      transition: all 0.12s;
+    }
+    .view-tab.active {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Stats bar ── */
+    #stats-bar {
+      padding: 8px 16px;
+      display: flex;
+      gap: 20px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+    }
+    .stat-item.highlight .stat-value { color: var(--accent); }
+    .stat-item.warning .stat-value   { color: #E07B3A; }
+
+    /* ── Main area ── */
+    #archive-main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+    }
+
+    /* ── Task row ── */
+    .archive-row {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      margin-bottom: 5px;
+      display: grid;
+      grid-template-columns: 1fr auto auto auto auto;
+      align-items: center;
+      gap: 12px;
+      transition: border-color 0.12s;
+    }
+    .archive-row:hover { border-color: var(--border); }
+
+    .archive-row-title {
+      font-size: 13px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .archive-row-title.done {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+
+    .archive-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    .archive-cat-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .archive-ws-badge {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .archive-moves {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .archive-moves.many { color: #E07B3A; }
+
+    .archive-priority-icon {
+      color: #D4AC0D;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    /* ── Group header ── */
+    .archive-group-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 14px 0 6px;
+      border-bottom: 1px solid var(--border-light);
+      margin-bottom: 6px;
+    }
+
+    /* ── Empty ── */
+    .archive-empty {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: 60px;
+      font-style: italic;
+    }
+
+    /* ── Export btn ── */
+    #btn-export-csv {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      white-space: nowrap;
+    }
+    #btn-export-csv:hover {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    #btn-export-csv svg { width: 14px; height: 14px; }
+  </style>
+</head>
+<body>
+
+<div id="archive-app">
+
+  <!-- TOP BAR -->
+  <header id="archive-top">
+    <nav class="nav-links">
+      <a href="index.html"   class="nav-link">📅 Planner</a>
+      <a href="tracker.html" class="nav-link">📚 Tracker</a>
+      <a href="archive.html" class="nav-link active">📊 Archive</a>
+    </nav>
+    <button id="btn-export-csv">
+      <i data-lucide="download"></i> Export CSV
+    </button>
+  </header>
+
+  <!-- FILTERS -->
+  <div id="filters-bar">
+    <div class="filter-group">
+      <span class="filter-label">From</span>
+      <input type="date" id="filter-date-from" />
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">To</span>
+      <input type="date" id="filter-date-to" />
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Workspace</span>
+      <select id="filter-workspace">
+        <option value="all">All</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Status</span>
+      <select id="filter-status">
+        <option value="all">All tasks</option>
+        <option value="done">Done only</option>
+        <option value="pending">Pending only</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Moved</span>
+      <select id="filter-moves">
+        <option value="all">Any</option>
+        <option value="moved">Moved at least once</option>
+        <option value="stuck">Moved 3+ times</option>
+        <option value="never">Never moved</option>
+      </select>
+    </div>
+
+    <div id="filter-view-tabs">
+      <button class="view-tab active" data-view="list">List</button>
+      <button class="view-tab" data-view="grouped">By workspace</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div id="stats-bar">
+    <div class="stat-item highlight">
+      <span class="stat-value" id="stat-total">0</span>
+      <span class="stat-label">Total tasks</span>
+    </div>
+    <div class="stat-item highlight">
+      <span class="stat-value" id="stat-done">0</span>
+      <span class="stat-label">Done</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value" id="stat-rate">0%</span>
+      <span class="stat-label">Completion rate</span>
+    </div>
+    <div class="stat-item warning">
+      <span class="stat-value" id="stat-moved">0</span>
+      <span class="stat-label">Moved tasks</span>
+    </div>
+    <div class="stat-item warning">
+      <span class="stat-value" id="stat-avg-moves">0</span>
+      <span class="stat-label">Avg moves/task</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value" id="stat-priority-done">0%</span>
+      <span class="stat-label">Priority done</span>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main id="archive-main">
+    <!-- Rendered by JS -->
+  </main>
+
+</div>
+
+<script src="archive.js"></script>
+</body>
+</html>
