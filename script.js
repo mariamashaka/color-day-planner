@@ -644,13 +644,28 @@ function deleteWorkspace(id) {
    TASK ACTIONS
 ═══════════════════════════════════════════ */
 function createTask(fields) {
-  data.tasks.push({ id: genId(), done: false, ...fields });
+  data.tasks.push({
+    id: genId(),
+    done: false,
+    createdAt: todayStr(),
+    moveHistory: [],
+    completedAt: null,
+    ...fields
+  });
   saveData(); renderAll();
 }
 
 function updateTask(id, fields) {
   const t = data.tasks.find(x => x.id === id);
-  if (t) { Object.assign(t, fields); saveData(); renderAll(); }
+  if (!t) return;
+  // Log completion date
+  if (fields.done === true && !t.done) {
+    fields.completedAt = todayStr();
+  } else if (fields.done === false && t.done) {
+    fields.completedAt = null;
+  }
+  Object.assign(t, fields);
+  saveData(); renderAll();
 }
 
 function deleteTask(id) {
@@ -660,7 +675,11 @@ function deleteTask(id) {
 
 function moveTask(id, newDate) {
   const t = data.tasks.find(x => x.id === id);
-  if (t) { t.date = newDate; saveData(); renderAll(); }
+  if (!t) return;
+  if (!t.moveHistory) t.moveHistory = [];
+  t.moveHistory.push({ from: t.date, to: newDate, on: todayStr() });
+  t.date = newDate;
+  saveData(); renderAll();
 }
 
 /* ═══════════════════════════════════════════
