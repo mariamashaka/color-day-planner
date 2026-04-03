@@ -1502,18 +1502,6 @@ function initEventListeners() {
     if (editingId) { deleteRoutine(editingId); closePopup('popup-routine'); }
   });
 
-  // Project popup
-  document.getElementById('btn-project-save').addEventListener('click', saveProject);
-  document.getElementById('btn-project-delete').addEventListener('click', () => {
-    if (editingId) { deleteProject(editingId); closePopup('popup-project'); }
-  });
-
-  // Category popup
-  document.getElementById('btn-category-save').addEventListener('click', saveCategory);
-  document.getElementById('btn-category-delete').addEventListener('click', () => {
-    if (editingId) { deleteCategory(editingId); closePopup('popup-category'); }
-  });
-
   // Move popup
   document.getElementById('btn-move-save').addEventListener('click', saveMove);
 }
