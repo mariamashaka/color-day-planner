@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — Day Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { overflow-x: hidden; }
+
+    #settings-app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    #settings-top {
+      height: 52px;
+      min-height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav-links { display: flex; gap: 4px; margin-right: auto; }
+    .nav-link {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-link:hover  { background: var(--surface-2); color: var(--text-primary); }
+    .nav-link.active { background: var(--accent-light); color: var(--accent); }
+
+    /* ── Layout ── */
+    #settings-body {
+      display: flex;
+      flex: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 24px 16px;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    /* ── Sections ── */
+    .settings-section {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .settings-section-header {
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .settings-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ── Workspace items ── */
+    .ws-settings-item {
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ws-settings-item:last-child { border-bottom: none; }
+
+    .ws-settings-name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .ws-settings-badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 8px;
+      background: var(--accent-light);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .ws-item-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .ws-settings-item:hover .ws-item-actions { opacity: 1; }
+
+    .ws-action-btn {
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .ws-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .ws-action-btn.danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+
+    /* ── Category groups (by workspace) ── */
+    .cat-workspace-group {
+      border-bottom: 1px solid var(--border-light);
+    }
+    .cat-workspace-group:last-child { border-bottom: none; }
+
+    .cat-workspace-label {
+      padding: 8px 18px 6px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cat-add-btn {
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 2px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .cat-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .cat-settings-item {
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-light);
+      transition: background 0.1s;
+    }
+    .cat-settings-item:last-child { border-bottom: none; }
+    .cat-settings-item:hover { background: var(--surface-2); }
+
+    .cat-color-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .cat-name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .cat-item-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .cat-settings-item:hover .cat-item-actions { opacity: 1; }
+
+    /* ── Danger zone ── */
+    .danger-zone {
+      border-top: 1px solid var(--border-light);
+      padding: 14px 18px;
+    }
+
+    .danger-zone-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--danger);
+      margin-bottom: 10px;
+    }
+
+    .danger-zone-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .danger-zone-row:last-child { border-bottom: none; }
+
+    .danger-zone-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .danger-zone-desc small {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .danger-btn-sm {
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--danger-light);
+      color: var(--danger);
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid #f5c6c2;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.12s;
+      flex-shrink: 0;
+    }
+    .danger-btn-sm:hover { background: #f5c6c2; }
+
+    /* ── Export / import section ── */
+    .settings-data-row {
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-light);
+      gap: 12px;
+    }
+    .settings-data-row:last-child { border-bottom: none; }
+
+    .settings-data-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .settings-data-desc small {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .settings-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.12s;
+      flex-shrink: 0;
+    }
+    .settings-action-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+    .settings-action-btn svg { width: 13px; height: 13px; }
+  </style>
+</head>
+<body>
+
+<div id="settings-app">
+
+  <!-- TOP BAR -->
+  <header id="settings-top">
+    <nav class="nav-links">
+      <a href="index.html"    class="nav-link">📅 Planner</a>
+      <a href="projects.html" class="nav-link">📁 Projects</a>
+      <a href="tracker.html"  class="nav-link">📚 Tracker</a>
+      <a href="archive.html"  class="nav-link">📊 Archive</a>
+      <a href="settings.html" class="nav-link active">⚙️ Settings</a>
+    </nav>
+  </header>
+
+  <div id="settings-body">
+
+    <!-- LEFT COLUMN: Workspaces + Categories -->
+    <div style="display:flex;flex-direction:column;gap:20px;flex:1.2;">
+
+      <!-- WORKSPACES -->
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <span class="settings-section-title">Workspaces</span>
+          <button class="primary-btn" id="btn-new-workspace" style="font-size:12px;padding:5px 12px;">
+            <i data-lucide="plus"></i> New
+          </button>
+        </div>
+        <div id="workspaces-list">
+          <!-- rendered by JS -->
+        </div>
+      </section>
+
+      <!-- CATEGORIES -->
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <span class="settings-section-title">Categories</span>
+          <button class="primary-btn" id="btn-new-category" style="font-size:12px;padding:5px 12px;">
+            <i data-lucide="plus"></i> New
+          </button>
+        </div>
+        <div id="categories-list">
+          <!-- rendered by JS -->
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT COLUMN: Data + Danger -->
+    <div style="display:flex;flex-direction:column;gap:20px;flex:0.8;">
+
+      <!-- DATA -->
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <span class="settings-section-title">Data</span>
+        </div>
+
+        <div class="settings-data-row">
+          <div class="settings-data-desc">
+            Export all data
+            <small>Download full backup as JSON</small>
+          </div>
+          <button class="settings-action-btn" id="btn-export-json">
+            <i data-lucide="download"></i> Export
+          </button>
+        </div>
+
+        <div class="settings-data-row">
+          <div class="settings-data-desc">
+            Import data
+            <small>Restore from JSON backup</small>
+          </div>
+          <button class="settings-action-btn" id="btn-import-json">
+            <i data-lucide="upload"></i> Import
+          </button>
+        </div>
+
+        <input type="file" id="import-file-input" accept=".json" style="display:none;" />
+      </section>
+
+      <!-- DANGER ZONE -->
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <span class="settings-section-title" style="color:var(--danger);">Danger zone</span>
+        </div>
+
+        <div class="danger-zone">
+          <div class="danger-zone-row">
+            <div class="danger-zone-desc">
+              Clear all tasks
+              <small>Keeps workspaces, categories, routines</small>
+            </div>
+            <button class="danger-btn-sm" id="btn-clear-tasks">Clear tasks</button>
+          </div>
+          <div class="danger-zone-row">
+            <div class="danger-zone-desc">
+              Reset daily routines
+              <small>Mark all as not done</small>
+            </div>
+            <button class="danger-btn-sm" id="btn-reset-daily">Reset daily</button>
+          </div>
+          <div class="danger-zone-row">
+            <div class="danger-zone-desc">
+              Reset all data
+              <small>Wipes everything, loads defaults</small>
+            </div>
+            <button class="danger-btn-sm" id="btn-reset-all">Reset all</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay"></div>
+
+<!-- POPUP: Workspace -->
+<div class="popup" id="popup-workspace">
+  <div class="popup-header">
+    <span class="popup-title" id="popup-ws-title">New Workspace</span>
+    <button class="icon-btn popup-close" data-popup="popup-workspace">
+      <i data-lucide="x"></i>
+    </button>
+  </div>
+  <div class="popup-body">
+    <label>Name
+      <input type="text" id="ws-input-name" placeholder="e.g. Work, Home, Study..." />
+    </label>
+  </div>
+  <div class="popup-footer">
+    <button class="secondary-btn popup-close" data-popup="popup-workspace">Cancel</button>
+    <button class="danger-btn" id="btn-ws-delete" style="display:none;">Delete</button>
+    <button class="primary-btn" id="btn-ws-save">Save</button>
+  </div>
+</div>
+
+<!-- POPUP: Category -->
+<div class="popup" id="popup-category">
+  <div class="popup-header">
+    <span class="popup-title" id="popup-cat-title">New Category</span>
+    <button class="icon-btn popup-close" data-popup="popup-category">
+      <i data-lucide="x"></i>
+    </button>
+  </div>
+  <div class="popup-body">
+    <label>Name
+      <input type="text" id="cat-input-name" placeholder="e.g. Letters, Staff..." />
+    </label>
+    <label>Color
+      <div class="color-swatches" id="cat-color-swatches"></div>
+    </label>
+    <label>Workspace
+      <select id="cat-input-workspace"></select>
+    </label>
+  </div>
+  <div class="popup-footer">
+    <button class="secondary-btn popup-close" data-popup="popup-category">Cancel</button>
+    <button class="danger-btn" id="btn-cat-delete" style="display:none;">Delete</button>
+    <button class="primary-btn" id="btn-cat-save">Save</button>
+  </div>
+</div>
+
+<script src="settings.js"></script>
+</body>
+</html>
