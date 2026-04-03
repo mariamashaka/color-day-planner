@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projects — Day Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { overflow: hidden; }
+
+    #projects-app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    #projects-top {
+      height: 52px;
+      min-height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+    }
+
+    .nav-links { display: flex; gap: 4px; margin-right: auto; }
+    .nav-link {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-link:hover  { background: var(--surface-2); color: var(--text-primary); }
+    .nav-link.active { background: var(--accent-light); color: var(--accent); }
+
+    /* ── Body ── */
+    #projects-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #projects-sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 14px 12px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
+    }
+
+    /* Status filter pills in sidebar */
+    .sidebar-status-tabs {
+      display: flex;
+      gap: 3px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
+    }
+    .sidebar-status-tab {
+      flex: 1;
+      padding: 3px 0;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.12s;
+    }
+    .sidebar-status-tab.active {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Project item in sidebar */
+    .project-list-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+      transition: background 0.12s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .project-list-item:hover   { background: var(--surface-2); }
+    .project-list-item.active  { background: var(--accent-light); }
+
+    .project-list-top {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .project-list-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .project-list-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .project-list-item.active .project-list-name { color: var(--accent); }
+
+    .project-list-status {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .project-list-status.active-s  { background: #EAF7F0; color: #27AE60; }
+    .project-list-status.paused    { background: #FDF3EC; color: #E07B3A; }
+    .project-list-status.done-s    { background: var(--surface-2); color: var(--text-muted); }
+
+    /* Progress bar */
+    .project-progress-bar {
+      height: 3px;
+      background: var(--border-light);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .project-progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+      transition: width 0.3s;
+    }
+
+    /* ── Main ── */
+    #projects-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    #project-placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-style: italic;
+    }
+
+    /* Project header */
+    #project-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 18px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    #project-header-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    #project-header-name {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    #project-header-status {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    #btn-edit-project {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    #btn-edit-project:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    #btn-add-block {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    #btn-add-block:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    #btn-add-block svg { width: 13px; height: 13px; }
+
+    /* Project content area */
+    #project-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── BLOCKS ── */
+    .project-block {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .block-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+      user-select: none;
+    }
+    .block-header:hover { background: var(--surface-2); }
+
+    .block-icon { font-size: 15px; flex-shrink: 0; }
+
+    .block-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .block-toggle {
+      color: var(--text-muted);
+      width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .block-toggle svg { width: 14px; height: 14px; }
+
+    .block-delete-btn {
+      opacity: 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: opacity 0.12s, background 0.12s, color 0.12s;
+    }
+    .block-header:hover .block-delete-btn { opacity: 1; }
+    .block-delete-btn:hover { background: var(--danger-light); color: var(--danger); }
+
+    .block-body {
+      padding: 12px 14px;
+    }
+    .block-body.collapsed { display: none; }
+
+    /* ── STAGES & TASKS block ── */
+    .stage {
+      margin-bottom: 12px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .stage-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .stage-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+      cursor: text;
+    }
+
+    .stage-actions { display: flex; gap: 3px; }
+
+    .stage-btn {
+      width: 22px; height: 22px;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      transition: background 0.1s, color 0.1s;
+      opacity: 0;
+    }
+    .stage-header:hover .stage-btn { opacity: 1; }
+    .stage-btn:hover { background: var(--border-light); color: var(--text-primary); }
+    .stage-btn.danger:hover { background: var(--danger-light); color: var(--danger); }
+    .stage-btn svg { width: 12px; height: 12px; }
+
+    .stage-tasks { padding: 6px 0; }
+
+    /* Task row */
+    .ptask-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 12px;
+      transition: background 0.1s;
+    }
+    .ptask-row:hover { background: var(--surface-2); }
+
+    .ptask-check {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .ptask-check.checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .ptask-check.checked::after {
+      content: '';
+      width: 6px; height: 4px;
+      border-left: 1.5px solid #fff;
+      border-bottom: 1.5px solid #fff;
+      transform: rotate(-45deg) translateY(-1px);
+    }
+
+    .ptask-label {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: text;
+    }
+    .ptask-label.done {
+      text-decoration: line-through;
+      opacity: 0.45;
+    }
+
+    .ptask-deadline {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+    .ptask-deadline.overdue { color: var(--danger); }
+
+    .ptask-actions {
+      display: flex; gap: 2px;
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .ptask-row:hover .ptask-actions { opacity: 1; }
+
+    .ptask-btn {
+      width: 20px; height: 20px;
+      border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      transition: background 0.1s, color 0.1s;
+    }
+    .ptask-btn:hover { background: var(--surface-2); color: var(--accent); }
+    .ptask-btn.danger:hover { background: var(--danger-light); color: var(--danger); }
+    .ptask-btn svg { width: 11px; height: 11px; }
+
+    /* Subtask indent */
+    .ptask-row.subtask { padding-left: 36px; }
+    .ptask-row.subtask .ptask-check {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+    .ptask-row.subtask .ptask-label { font-size: 12px; color: var(--text-secondary); }
+
+    /* Add task/stage inline input */
+    .add-ptask-row {
+      padding: 4px 12px;
+    }
+    .add-ptask-input {
+      width: 100%;
+      font-size: 13px;
+      font-family: var(--font-body);
+      border: none;
+      border-bottom: 1.5px solid var(--accent);
+      background: transparent;
+      color: var(--text-primary);
+      padding: 3px 0;
+    }
+
+    .add-stage-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 6px 4px;
+      cursor: pointer;
+      transition: color 0.12s;
+      background: none;
+      border: none;
+    }
+    .add-stage-btn:hover { color: var(--accent); }
+    .add-stage-btn svg { width: 13px; height: 13px; }
+
+    /* ── NOTES block ── */
+    .notes-textarea {
+      width: 100%;
+      min-height: 100px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-primary);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      padding: 8px 10px;
+      resize: vertical;
+      transition: border-color 0.15s;
+    }
+    .notes-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    /* ── BUDGET block ── */
+    .budget-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .budget-card {
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-light);
+      background: var(--surface-2);
+    }
+
+    .budget-card-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .budget-card-value {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+    }
+    .budget-card.spent .budget-card-value  { color: #E07B3A; }
+    .budget-card.remain .budget-card-value { color: var(--accent); }
+
+    .budget-items { display: flex; flex-direction: column; gap: 5px; }
+
+    .budget-item-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-light);
+      background: var(--surface);
+    }
+
+    .budget-item-name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: text;
+    }
+
+    .budget-item-amount {
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      cursor: text;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .budget-item-type {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    .budget-item-type.planned { background: #EAF2FB; color: #4A90D9; }
+    .budget-item-type.spent   { background: #FDF3EC; color: #E07B3A; }
+
+    .budget-item-del {
+      opacity: 0;
+      color: var(--text-muted);
+      font-size: 14px;
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 3px;
+      transition: opacity 0.12s, background 0.1s, color 0.1s;
+    }
+    .budget-item-row:hover .budget-item-del { opacity: 1; }
+    .budget-item-del:hover { background: var(--danger-light); color: var(--danger); }
+
+    .add-budget-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .add-budget-row input, .add-budget-row select {
+      font-family: var(--font-body);
+      font-size: 12px;
+      padding: 5px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+    .add-budget-row input:focus, .add-budget-row select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .add-budget-row input.name-input { flex: 1; }
+    .add-budget-row input.amount-input { width: 80px; }
+
+    /* ── CHECKLIST block ── */
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .checklist-item:last-child { border-bottom: none; }
+
+    .checklist-cb {
+      width: 15px; height: 15px;
+      border-radius: 3px;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .checklist-cb.checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .checklist-cb.checked::after {
+      content: '';
+      width: 7px; height: 4px;
+      border-left: 1.5px solid #fff;
+      border-bottom: 1.5px solid #fff;
+      transform: rotate(-45deg) translateY(-1px);
+    }
+
+    .checklist-label {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: text;
+    }
+    .checklist-label.done {
+      text-decoration: line-through;
+      opacity: 0.4;
+    }
+
+    .checklist-del {
+      opacity: 0;
+      color: var(--text-muted);
+      font-size: 14px;
+      transition: opacity 0.12s, color 0.1s;
+    }
+    .checklist-item:hover .checklist-del { opacity: 1; }
+    .checklist-del:hover { color: var(--danger); }
+
+    /* ── CONTACTS block ── */
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .contact-row:last-child { border-bottom: none; }
+
+    .contact-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent-light);
+      color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: text;
+    }
+    .contact-detail {
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: text;
+    }
+
+    .contact-del {
+      opacity: 0;
+      color: var(--text-muted);
+      font-size: 14px;
+      transition: opacity 0.12s;
+    }
+    .contact-row:hover .contact-del { opacity: 1; }
+    .contact-del:hover { color: var(--danger); }
+
+    /* ── LINKS block ── */
+    .link-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .link-row:last-child { border-bottom: none; }
+
+    .link-icon { font-size: 14px; flex-shrink: 0; }
+
+    .link-label {
+      flex: 1;
+      font-size: 13px;
+      color: var(--accent);
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .link-label:hover { text-decoration: underline; }
+
+    .link-del {
+      opacity: 0;
+      color: var(--text-muted);
+      font-size: 14px;
+      transition: opacity 0.12s;
+    }
+    .link-row:hover .link-del { opacity: 1; }
+    .link-del:hover { color: var(--danger); }
+
+    /* ── ROUTE block ── */
+    .route-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .route-item:last-child { border-bottom: none; }
+
+    .route-num {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--accent-light);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .route-info { flex: 1; min-width: 0; }
+    .route-place { font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: text; }
+    .route-note  { font-size: 11px; color: var(--text-muted); cursor: text; margin-top: 1px; }
+
+    .route-del {
+      opacity: 0;
+      color: var(--text-muted);
+      font-size: 14px;
+      transition: opacity 0.12s;
+    }
+    .route-item:hover .route-del { opacity: 1; }
+    .route-del:hover { color: var(--danger); }
+
+    /* ── Add block dropdown ── */
+    .add-block-dropdown {
+      position: absolute;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      z-index: 50;
+      min-width: 180px;
+      overflow: hidden;
+    }
+    .add-block-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 14px;
+      font-size: 13px;
+      color: var(--text-primary);
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.1s;
+      background: none;
+      border: none;
+    }
+    .add-block-option:hover { background: var(--surface-2); }
+    .add-block-option .opt-icon { font-size: 15px; }
+
+    /* ── Send to planner popup ── */
+    #popup-send-to-planner .popup-body { gap: 12px; }
+
+    /* ── Generic inline edit ── */
+    .inline-edit {
+      font-family: var(--font-body);
+      font-size: inherit;
+      color: var(--text-primary);
+      border: none;
+      border-bottom: 1.5px solid var(--accent);
+      background: transparent;
+      padding: 1px 0;
+      width: 100%;
+    }
+    .inline-edit:focus { outline: none; }
+  </style>
+</head>
+<body>
+
+<div id="projects-app">
+
+  <!-- TOP BAR -->
+  <header id="projects-top">
+    <nav class="nav-links">
+      <a href="index.html"    class="nav-link">📅 Planner</a>
+      <a href="projects.html" class="nav-link active">📁 Projects</a>
+      <a href="tracker.html"  class="nav-link">📚 Tracker</a>
+      <a href="archive.html"  class="nav-link">📊 Archive</a>
+      <a href="settings.html" class="nav-link">⚙️ Settings</a>
+    </nav>
+  </header>
+
+  <div id="projects-body">
+
+    <!-- SIDEBAR -->
+    <aside id="projects-sidebar">
+      <div class="sidebar-header">
+        <span class="section-title">Projects</span>
+        <button class="icon-btn" id="btn-new-project" title="New project">
+          <i data-lucide="plus"></i>
+        </button>
+      </div>
+
+      <div class="sidebar-status-tabs">
+        <button class="sidebar-status-tab active" data-status="active">Active</button>
+        <button class="sidebar-status-tab" data-status="paused">Paused</button>
+        <button class="sidebar-status-tab" data-status="done">Done</button>
+        <button class="sidebar-status-tab" data-status="all">All</button>
+      </div>
+
+      <div id="project-list">
+        <!-- rendered by JS -->
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main id="projects-main">
+      <div id="project-placeholder">← Select or create a project</div>
+
+      <!-- Project header (shown when project selected) -->
+      <div id="project-header">
+        <div id="project-header-dot"></div>
+        <span id="project-header-name"></span>
+        <span id="project-header-status"></span>
+        <button id="btn-edit-project">Edit project</button>
+        <button id="btn-add-block">
+          <i data-lucide="plus"></i> Add block
+        </button>
+      </div>
+
+      <!-- Project content blocks -->
+      <div id="project-content">
+        <!-- blocks rendered by JS -->
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay"></div>
+
+<!-- POPUP: New / Edit Project -->
+<div class="popup" id="popup-project-edit">
+  <div class="popup-header">
+    <span class="popup-title" id="popup-project-edit-title">New Project</span>
+    <button class="icon-btn popup-close" data-popup="popup-project-edit">
+      <i data-lucide="x"></i>
+    </button>
+  </div>
+  <div class="popup-body">
+    <label>Name
+      <input type="text" id="proj-input-name" placeholder="Project name..." />
+    </label>
+    <label>Color
+      <div class="color-swatches" id="proj-color-swatches"></div>
+    </label>
+    <label>Status
+      <select id="proj-input-status">
+        <option value="active">Active</option>
+        <option value="paused">Paused</option>
+        <option value="done">Done</option>
+      </select>
+    </label>
+    <label>Deadline (optional)
+      <input type="date" id="proj-input-deadline" />
+    </label>
+    <label>Goal / description
+      <textarea id="proj-input-goal" placeholder="What is this project about?" rows="2"></textarea>
+    </label>
+  </div>
+  <div class="popup-footer">
+    <button class="secondary-btn popup-close" data-popup="popup-project-edit">Cancel</button>
+    <button class="danger-btn" id="btn-proj-delete" style="display:none;">Delete</button>
+    <button class="primary-btn" id="btn-proj-save">Save</button>
+  </div>
+</div>
+
+<!-- POPUP: Send task to Planner -->
+<div class="popup" id="popup-send-to-planner">
+  <div class="popup-header">
+    <span class="popup-title">Send to Planner</span>
+    <button class="icon-btn popup-close" data-popup="popup-send-to-planner">
+      <i data-lucide="x"></i>
+    </button>
+  </div>
+  <div class="popup-body">
+    <div id="send-task-title-preview"
+      style="font-size:14px;font-weight:500;color:var(--text-primary);padding:4px 0;"></div>
+    <label>Date
+      <input type="date" id="send-input-date" />
+    </label>
+    <label>Workspace
+      <select id="send-input-workspace"></select>
+    </label>
+    <label>Category
+      <select id="send-input-category">
+        <option value="">— No category —</option>
+      </select>
+    </label>
+  </div>
+  <div class="popup-footer">
+    <button class="secondary-btn popup-close" data-popup="popup-send-to-planner">Cancel</button>
+    <button class="primary-btn" id="btn-send-confirm">Send to Planner</button>
+  </div>
+</div>
+
+<script src="projects.js"></script>
+</body>
+</html>
