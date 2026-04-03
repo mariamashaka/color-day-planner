@@ -156,8 +156,6 @@ function getCategoriesForWorkspace(wsId) {
 function renderAll() {
   renderWorkspaceTabs();
   renderWeeklyRoutines();
-  renderProjects();
-  renderCategories();
   renderDailyRoutines();
   renderCalendar();
   lucide.createIcons();
@@ -1467,8 +1465,6 @@ function initEventListeners() {
   // Left panel
   document.getElementById('btn-add-routine').addEventListener('click',    () => openRoutinePopup(null));
   document.getElementById('btn-reset-routines').addEventListener('click', resetWeeklyRoutines);
-  document.getElementById('btn-add-project').addEventListener('click',    () => openProjectPopup(null));
-  document.getElementById('btn-add-category').addEventListener('click',   () => openCategoryPopup(null, null));
   document.getElementById('btn-add-morning').addEventListener('click',    () => showInlineAdd('morning', 'btn-add-morning'));
   document.getElementById('btn-add-evening').addEventListener('click',    () => showInlineAdd('evening', 'btn-add-evening'));
   document.getElementById('btn-reset-day').addEventListener('click',      resetDailyRoutines);
