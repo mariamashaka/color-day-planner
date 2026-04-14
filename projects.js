@@ -149,8 +149,11 @@ function selectProject(projId) {
   document.getElementById('project-header').style.display = 'flex';
   const content = document.getElementById('project-content');
   content.style.display = 'flex';
+  content.style.flexDirection = 'column';
   content.style.overflowY = 'auto';
-  content.style.maxHeight = 'calc(100vh - 104px)';
+  content.style.height = (window.innerHeight - 104) + 'px';
+  content.style.maxHeight = (window.innerHeight - 104) + 'px';
+  content.style.boxSizing = 'border-box';
   renderSidebar();
   renderProject(projId);
   lucide.createIcons();
