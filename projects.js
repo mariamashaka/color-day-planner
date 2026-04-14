@@ -147,7 +147,10 @@ function selectProject(projId) {
   currentProjId = projId;
   document.getElementById('project-placeholder').style.display = 'none';
   document.getElementById('project-header').style.display = 'flex';
-  document.getElementById('project-content').style.display = 'flex';
+  const content = document.getElementById('project-content');
+  content.style.display = 'flex';
+  content.style.overflowY = 'auto';
+  content.style.maxHeight = 'calc(100vh - 104px)';
   renderSidebar();
   renderProject(projId);
   lucide.createIcons();
