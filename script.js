@@ -180,6 +180,7 @@ function getCategoriesForWorkspace(wsId) {
    RENDER ALL
 ═══════════════════════════════════════════ */
 function renderAll() {
+  checkUser();
   renderWorkspaceTabs();
   renderWeeklyRoutines();
   renderDailyRoutines();
