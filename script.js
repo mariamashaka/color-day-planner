@@ -1,4 +1,30 @@
 /* ═══════════════════════════════════════════
+    GOOGLE & SUPABASE AUTH (ПОДКЛЮЧЕНИЕ)
+═══════════════════════════════════════════ */
+// Эти данные Netlify подтянет сам из настроек
+const supabaseUrl = 'https://lkpfpyzscqjxfvgjqi.supabase.co';
+const supabaseKey = ''; // Оставляем пустым
+
+// Создаем "связиста" между сайтом и базой
+const supabase = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
+
+// Функция для входа
+async function signInWithGoogle() {
+    await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+    });
+}
+
+// Функция для проверки, кто зашел
+async function checkUser() {
+    if (!supabase) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        console.log("Пользователь вошел:", user.user_metadata.full_name);
+    }
+}
+/* ═══════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════ */
 const STORAGE_KEY = 'planner_data';
